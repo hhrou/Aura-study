@@ -1099,11 +1099,6 @@
   // 已移除受測者端表格，維持狀態正常
 }
 
-    document.getElementById("btn-download-csv").addEventListener("click", () => {
-      if (evaluationResults.length === 0) return;
-      exportToCSV(evaluationResults, `Aura_${participantId}_Data.csv`);
-    });
-
     document.getElementById("btn-toggle-admin").addEventListener("click", () => {
       if (screenAdmin.classList.contains("hidden")) {
         switchScreen("admin");
@@ -1188,10 +1183,20 @@
       document.body.removeChild(link);
     }
 
-    document.getElementById("btn-restart").addEventListener("click", () => {
+   document.getElementById("btn-restart")?.addEventListener("click", () => {
+      // 1. 產生新的受測者編號
       participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
       if (inputParticipantId) inputParticipantId.value = participantId;
+
+      // 2. 清空回合計數與當前受測結果
+      currentTurnIndex = 0;
+      evaluationResults.length = 0;
+
+      // 3. 確保抽屜隱藏並回到第一頁解說
+      screenEvalSheet.classList.add("hidden");
       switchScreen("intro");
+
+      showToast("已重置為新回合，歡迎重新體驗！");
     });
 
     window.addEventListener("DOMContentLoaded", () => {

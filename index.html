@@ -700,41 +700,39 @@
       }
     }
 
-    async function initCloudSync() {
+async function initCloudSync() {
       try {
-        let activeConfig = null;
-        if (CUSTOM_FIREBASE_CONFIG) {
-          activeConfig = CUSTOM_FIREBASE_CONFIG;
-        } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-          activeConfig = JSON.parse(__firebase_config);
-        }
+        const config = typeof CUSTOM_FIREBASE_CONFIG !== 'undefined' && CUSTOM_FIREBASE_CONFIG 
+          ? CUSTOM_FIREBASE_CONFIG 
+          : (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
 
-        if (activeConfig) {
-          const app = initializeApp(activeConfig);
+        if (config) {
+          const app = initializeApp(config);
           db = getFirestore(app);
           auth = getAuth(app);
 
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-
+          await signInAnonymously(auth);
           currentUser = auth.currentUser;
           isCloudReady = true;
 
           const syncModeEl = document.getElementById("stat-sync-mode");
-          if (syncModeEl) syncModeEl.textContent = "雲端即時連線中";
+          if (syncModeEl) {
+            syncModeEl.textContent = "雲端即時連線中";
+            syncModeEl.className = "text-[10px] text-emerald-400 font-mono";
+          }
 
           setupRealtimeListener();
         } else {
           const syncModeEl = document.getElementById("stat-sync-mode");
-          if (syncModeEl) syncModeEl.textContent = "本機離線模式 (待設定 Firebase)";
+          if (syncModeEl) syncModeEl.textContent = "未讀取到金鑰設定";
         }
       } catch (err) {
         console.warn("Cloud sync status:", err.message);
         const syncModeEl = document.getElementById("stat-sync-mode");
-        if (syncModeEl) syncModeEl.textContent = "本機模式";
+        if (syncModeEl) {
+          syncModeEl.textContent = "連線失敗: " + err.message;
+          syncModeEl.className = "text-[10px] text-rose-400 font-mono";
+        }
       }
     }
 

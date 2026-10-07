@@ -180,7 +180,7 @@
               </div>
             </div>
 
-            <!-- 擬真 App 情境背景卡片 (已依要求更新情境體驗文字) -->
+            <!-- 擬真 App 情境背景卡片 -->
             <div class="bg-white/90 border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-2 text-xs text-slate-600 leading-relaxed">
               <div class="flex items-center gap-1.5 text-indigo-600 font-bold text-xs">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -263,7 +263,7 @@
             </div>
           </div>
 
-          <!-- 聊天對話串流區 (保證進入新 Turn 永遠從最頂端第一句開始) -->
+          <!-- 聊天對話串流區 (進入新 Turn 永遠從最頂端第一句開始) -->
           <div id="chat-messages-container" class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5 z-10">
             
             <!-- 上前回合脈絡淡化提示 (Turn 2~5 動態產生) -->
@@ -338,10 +338,9 @@
                 </div>
               </div>
 
-              <!-- 抽屜滾動區域：直接呈現三道評估題目 -->
+              <!-- 抽屜滾動區域：三道評估題目 -->
               <div class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5">
 
-                <!-- 評估表單 (三道標準 Likert 題目) -->
                 <form id="eval-form" class="space-y-3.5">
                   
                   <!-- 題目 1: EXP-MC -->
@@ -611,6 +610,7 @@
                       <th class="p-2">EXP</th>
                       <th class="p-2">AGE</th>
                       <th class="p-2">CREEP</th>
+                      <th class="p-2 text-right">操作</th>
                     </tr>
                   </thead>
                   <tbody id="admin-table-body" class="divide-y divide-slate-800 font-mono">
@@ -640,17 +640,14 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
     // 0. 自訂研究者密鑰與雲端資料庫設定 (Firebase Config)
     // ==========================================
-    // 研究者密鑰：在公開網址後面加上 ?admin=aura888 即可開啟後台
     const ADMIN_SECRET_KEY = "aura888";
 
-    // 若您已在 Firebase 建立專案，請將專案的 SDK 設定複製貼在下方物件中：
-    // 若保持 null，系統將以本機暫存模式運作，不會報錯。
     const CUSTOM_FIREBASE_CONFIG = {
       apiKey: "AIzaSyBepvWsnrDAf2wK3ZMo0InnjYJZC2KPO20",
       authDomain: "aura-research-fd621.firebaseapp.com",
@@ -659,16 +656,6 @@
       messagingSenderId: "507257673835",
       appId: "1:507257673835:web:10d6aa08b0e3b9c16ef92e"
     };
-    /* 例如：
-    const CUSTOM_FIREBASE_CONFIG = {
-      apiKey: "AIzaSy...",
-      authDomain: "aura-study.firebaseapp.com",
-      projectId: "aura-study",
-      storageBucket: "aura-study.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
-    };
-    */
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'aura-mpt-app-study';
     let db = null;
@@ -677,13 +664,11 @@
     let isCloudReady = false;
     let globalCloudResponses = [];
 
-    // 檢查網址參數是否有研究者身分驗證 (?admin=aura888)
     function checkAdminPrivilege() {
       const urlParams = new URLSearchParams(window.location.search);
       const adminParam = urlParams.get('admin');
       const adminToggleWrapper = document.getElementById("admin-toggle-wrapper");
       
-      // 只要網址帶有正確金鑰，或之前已驗證過
       if (adminParam === ADMIN_SECRET_KEY || localStorage.getItem("aura_is_admin") === "true") {
         if (adminToggleWrapper) {
           adminToggleWrapper.classList.remove("hidden");
@@ -696,7 +681,7 @@
       }
     }
 
-async function initCloudSync() {
+    async function initCloudSync() {
       try {
         const config = typeof CUSTOM_FIREBASE_CONFIG !== 'undefined' && CUSTOM_FIREBASE_CONFIG 
           ? CUSTOM_FIREBASE_CONFIG 
@@ -734,7 +719,6 @@ async function initCloudSync() {
 
     function setupRealtimeListener() {
       if (!db || !currentUser) return;
-      // 統一將所有受測者數據存放在公用集合 aura_responses 中
       const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
       
       onSnapshot(responsesColRef, (snapshot) => {
@@ -773,7 +757,7 @@ async function initCloudSync() {
     }
 
     // ==========================================
-    // 1. 最新精緻校準之 T1～T5 完整情境劇本
+    // 1. T1～T5 完整情境劇本
     // ==========================================
     const SCENARIO_TURNS = [
       {
@@ -922,7 +906,6 @@ async function initCloudSync() {
       chatTimestamp.textContent = turnData.timeLabel;
       if (statusBarTime) statusBarTime.textContent = turnData.timeLabel;
 
-      // 處理淡化的上前回合最後對話
       if (turnIdx > 0) {
         const prevTurnData = SCENARIO_TURNS[turnIdx - 1];
         const lastTwoMessages = prevTurnData.dialogues.slice(-2);
@@ -936,13 +919,11 @@ async function initCloudSync() {
         contextualBubbleContainer.innerHTML = "";
       }
 
-      // 渲染當前 Turn
       currentTurnMessages.innerHTML = "";
       turnData.dialogues.forEach(msg => {
         currentTurnMessages.appendChild(createAppBubble(msg.sender, msg.text, false));
       });
 
-      // 鎖定滾動到最頂部，絕不滑到底部劇透
       chatContainer.scrollTop = 0;
     }
 
@@ -1042,7 +1023,7 @@ async function initCloudSync() {
 
       tbody.innerHTML = "";
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
         return;
       }
 
@@ -1055,6 +1036,19 @@ async function initCloudSync() {
           <td class="p-2">${res.exp}</td>
           <td class="p-2">${res.age}</td>
           <td class="p-2 ${res.creep >= 4 ? 'text-rose-400 font-bold' : ''}">${res.creep}</td>
+          <td class="p-2 text-right">
+            <button 
+              class="btn-delete-single text-slate-500 hover:text-rose-400 p-1 rounded transition" 
+              data-id="${res.id || ''}" 
+              data-part="${res.participantId}" 
+              data-turn="${res.turn}"
+              title="刪除此筆資料"
+            >
+              <svg class="w-3.5 h-3.5 inline-block pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -1170,6 +1164,34 @@ async function initCloudSync() {
       }
       exportToCSV(globalCloudResponses, `Aura_ALL_Participants_MasterData_${Date.now()}.csv`);
       showToast("已成功匯出全部受測者 CSV！");
+    });
+
+    // 單筆刪除功能監聽
+    document.getElementById("admin-table-body")?.addEventListener("click", async (e) => {
+      const deleteBtn = e.target.closest(".btn-delete-single");
+      if (!deleteBtn) return;
+
+      const docId = deleteBtn.getAttribute("data-id");
+      const partId = deleteBtn.getAttribute("data-part");
+      const turnNum = deleteBtn.getAttribute("data-turn");
+
+      const confirmDelete = confirm(`確定要刪除受測者 [${partId}] 的第 ${turnNum} 回合資料嗎？`);
+      if (!confirmDelete) return;
+
+      try {
+        if (isCloudReady && db && docId) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', docId);
+          await deleteDoc(docRef);
+          showToast(`已成功刪除 ${partId} (T${turnNum})`);
+        } else {
+          globalCloudResponses = globalCloudResponses.filter(r => !(r.participantId === partId && r.turn == turnNum));
+          updateAdminDashboard();
+          showToast(`已刪除本地暫存紀錄 ${partId}`);
+        }
+      } catch (err) {
+        console.error("刪除失敗：", err);
+        alert("刪除失敗：" + err.message);
+      }
     });
 
     function exportToCSV(dataList, filename) {

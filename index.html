@@ -610,7 +610,7 @@
                       <th class="p-2">EXP</th>
                       <th class="p-2">AGE</th>
                       <th class="p-2">CREEP</th>
-                      <th class="p-2 text-right">操作</th>
+                      <th class="p-2 text-right">刪除受測者</th>
                     </tr>
                   </thead>
                   <tbody id="admin-table-body" class="divide-y divide-slate-800 font-mono">
@@ -1038,11 +1038,9 @@
           <td class="p-2 ${res.creep >= 4 ? 'text-rose-400 font-bold' : ''}">${res.creep}</td>
           <td class="p-2 text-right">
             <button 
-              class="btn-delete-single text-slate-500 hover:text-rose-400 p-1 rounded transition" 
-              data-id="${res.id || ''}" 
+              class="btn-delete-participant text-slate-500 hover:text-rose-400 p-1 rounded transition" 
               data-part="${res.participantId}" 
-              data-turn="${res.turn}"
-              title="刪除此筆資料"
+              title="刪除此受測者的全部資料"
             >
               <svg class="w-3.5 h-3.5 inline-block pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1166,27 +1164,34 @@
       showToast("已成功匯出全部受測者 CSV！");
     });
 
-    // 單筆刪除功能監聽
+    // 依受測者編號 (Participant ID) 一鍵整組刪除
     document.getElementById("admin-table-body")?.addEventListener("click", async (e) => {
-      const deleteBtn = e.target.closest(".btn-delete-single");
+      const deleteBtn = e.target.closest(".btn-delete-participant");
       if (!deleteBtn) return;
 
-      const docId = deleteBtn.getAttribute("data-id");
       const partId = deleteBtn.getAttribute("data-part");
-      const turnNum = deleteBtn.getAttribute("data-turn");
+      if (!partId) return;
 
-      const confirmDelete = confirm(`確定要刪除受測者 [${partId}] 的第 ${turnNum} 回合資料嗎？`);
+      const confirmDelete = confirm(`⚠️ 確定要刪除受測者 [${partId}] 的「全部回合」資料嗎？\n此操作無法復原！`);
       if (!confirmDelete) return;
 
+      showToast(`正在刪除 ${partId} 的全部紀錄...`);
+
       try {
-        if (isCloudReady && db && docId) {
-          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', docId);
-          await deleteDoc(docRef);
-          showToast(`已成功刪除 ${partId} (T${turnNum})`);
+        if (isCloudReady && db) {
+          // 找出屬於該受測者所有的雲端記錄並批量刪除
+          const docsToDelete = globalCloudResponses.filter(r => r.participantId === partId && r.id);
+          const deletePromises = docsToDelete.map(item => {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', item.id);
+            return deleteDoc(docRef);
+          });
+          await Promise.all(deletePromises);
+          showToast(`已成功移除受測者 [${partId}] 的所有雲端數據！`);
         } else {
-          globalCloudResponses = globalCloudResponses.filter(r => !(r.participantId === partId && r.turn == turnNum));
+          // 本機模式直接過濾
+          globalCloudResponses = globalCloudResponses.filter(r => r.participantId !== partId);
           updateAdminDashboard();
-          showToast(`已刪除本地暫存紀錄 ${partId}`);
+          showToast(`已移除受測者 [${partId}] 的本地數據！`);
         }
       } catch (err) {
         console.error("刪除失敗：", err);

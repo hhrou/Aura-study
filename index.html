@@ -1096,22 +1096,8 @@
     });
 
     function renderCompleteScreen() {
-      const tbody = document.getElementById("result-table-body");
-      if (!tbody) return;
-      tbody.innerHTML = "";
-
-      evaluationResults.forEach(res => {
-        const tr = document.createElement("tr");
-        tr.className = "hover:bg-slate-50";
-        tr.innerHTML = `
-          <td class="py-1.5 font-semibold text-indigo-600">T${res.turn}</td>
-          <td>${res.exp}</td>
-          <td>${res.age}</td>
-          <td class="${res.creep >= 4 ? 'text-rose-600 font-bold' : ''}">${res.creep}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  // 已移除受測者端表格，維持狀態正常
+}
 
     document.getElementById("btn-download-csv").addEventListener("click", () => {
       if (evaluationResults.length === 0) return;

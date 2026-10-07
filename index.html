@@ -83,7 +83,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-800 font-sans min-h-[100dvh] h-[100dvh] w-full flex flex-col items-center justify-center p-1 md:p-4 overflow-hidden">
+<body class="bg-slate-950 text-slate-800 font-sans min-h-[100dvh] h-[100dvh] w-full flex flex-col items-center justify-center p-0 overflow-hidden">
   <!-- 研究者後台浮動快捷按鈕 (預設隱藏 hidden，僅在網址包含 ?admin=aura888 時向研究者展示) -->
   <div id="admin-toggle-wrapper" class="hidden fixed top-4 right-4 z-50 flex items-center gap-2">
     <button 
@@ -96,8 +96,8 @@
     </button>
   </div>
 
-  <!-- 擬真旗艦大螢幕智慧型手機機身外框 (Device Frame: 425px 寬、900px 高，更修長貼合真實手機比例) -->
-<div class="relative w-full h-full md:h-[900px] md:max-h-[92vh] md:max-w-[425px] flex flex-col items-center justify-center p-1 md:p-0 select-none">
+  <!-- 擬真旗艦大螢幕智慧型手機機身外框：上下各留 6px 超細懸浮邊界，機身垂直拉到極限 -->
+  <div class="relative w-full max-w-[425px] flex flex-col items-center justify-center select-none" style="height: calc(100dvh - 12px); max-height: calc(100dvh - 12px);">
     
     <!-- 實體手機外側金屬按鍵 (Volume Keys & Power Key) -->
     <!-- 左側音量鍵群與靜音撥鈕 -->
@@ -107,20 +107,20 @@
     <!-- 右側電源按鍵 -->
     <div class="hidden sm:block absolute -right-[4px] top-40 w-1 h-20 bg-slate-700 rounded-r-sm shadow-sm pointer-events-none"></div>
 
-    <!-- 手機外殼本體 (鈦金屬邊框與立體倒角設計) -->
-<div class="w-full h-full bg-slate-900 rounded-[46px] pt-1.5 px-2 pb-0.5 md:p-[10px] shadow-phone-chassis border-2 border-slate-700/60 ring-1 ring-white/15 flex flex-col justify-between overflow-hidden relative"> 
+    <!-- 手機外殼本體：固定外框圓角，上下左右黑邊收斂至極致 -->
+    <div class="w-full h-full bg-slate-900 rounded-[44px] shadow-phone-chassis border-2 border-slate-700/60 ring-1 ring-white/15 flex flex-col justify-between overflow-hidden relative" style="padding: 4px 6px;"> 
       <!-- 頂部手機硬體邊框：極細微聽筒縫隙 -->
-      <div class="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-[3px] bg-slate-800 rounded-full z-50 pointer-events-none opacity-80"></div>
+      <div class="absolute top-1.5 left-1/2 -translate-x-1/2 w-20 h-[3px] bg-slate-800 rounded-full z-50 pointer-events-none opacity-80"></div>
 
-      <!-- 手機螢幕內部面板 (Phone OLED Screen Container) -->
-     <div class="w-full flex-1 bg-slate-50 rounded-[38px] overflow-hidden flex flex-col relative shadow-phone-inner border border-slate-800/10">
-        <!-- iOS 原生狀態列 (包含時間、動態島 Dynamic Island、訊號與電量) -->
-       <div class="h-[38px] px-7 pt-0.5 flex items-center justify-between text-slate-800 text-[12px] font-semibold shrink-0 z-40 bg-transparent
+      <!-- 手機螢幕內部面板 (Phone OLED Screen Container)：白色面板垂直徹底延展 -->
+      <div class="w-full h-full flex-1 bg-slate-50 rounded-[38px] overflow-hidden flex flex-col relative shadow-phone-inner border border-slate-800/10">
+        <!-- iOS 原生狀態列 (高度收緊至 34px，給下方白色內容更多垂直空間) -->
+        <div class="h-[34px] px-6 pt-0.5 flex items-center justify-between text-slate-800 text-[12px] font-semibold shrink-0 z-40 bg-transparent">
           <span class="tracking-tight text-slate-900 font-bold" id="status-bar-time">23:35</span>
           
           <!-- 動態島膠囊 (Dynamic Island) 擬真硬體鏡頭 -->
-          <div class="w-28 h-6 bg-black rounded-full flex items-center justify-between px-3 shadow-sm border border-slate-900/60">
-            <div class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
+          <div class="w-24 h-5 bg-black rounded-full flex items-center justify-between px-2.5 shadow-sm border border-slate-900/60">
+            <div class="w-2 h-2 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
               <div class="w-1.5 h-1.5 rounded-full bg-indigo-950/80"></div>
             </div>
             <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse"></div>

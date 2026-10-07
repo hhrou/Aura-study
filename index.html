@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Aura - AI Companion Phone Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Noto Sans TC"', 'sans-serif'],
+          },
+          colors: {
+            aura: {
+              50: '#f4f5fc',
+              100: '#e8eaf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b',
+            }
+          },
+          boxShadow: {
+            'phone-chassis': '0 30px 90px -20px rgba(15, 23, 42, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.25)',
+            'phone-inner': 'inset 0 2px 6px rgba(0,0,0,0.08)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 模擬 App 視窗滾動平滑與隱藏原生滾動條但保持滾動能力 */
+    .app-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .app-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .app-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    .app-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.6);
+    }
+    
+    /* 蘋果風格毛玻璃與動態彈出動畫 */
+    .ios-glass {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .animate-slide-up {
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+
+    /* 氣泡尾巴與自然微陰影 */
+    .bubble-user {
+      border-bottom-right-radius: 4px !important;
+    }
+    .bubble-aura {
+      border-bottom-left-radius: 4px !important;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-800 font-sans min-h-[100dvh] h-[100dvh] flex items-center justify-center p-2 sm:p-5 antialiased selection:bg-indigo-500 selection:text-white overflow-hidden">
+
+  <!-- 研究者後台浮動快捷按鈕 (預設隱藏 hidden，僅在網址包含 ?admin=aura888 時向研究者展示) -->
+  <div id="admin-toggle-wrapper" class="hidden fixed top-4 right-4 z-50 flex items-center gap-2">
+    <button 
+      id="btn-toggle-admin" 
+      class="text-xs font-bold px-3 py-1.5 rounded-full border border-indigo-500/40 bg-slate-900/90 text-indigo-300 shadow-xl hover:bg-slate-800 backdrop-blur transition flex items-center gap-1.5 ring-1 ring-indigo-500/20"
+      title="研究者後台數據看板"
+    >
+      <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span>後台看板</span>
+    </button>
+  </div>
+
+  <!-- 擬真旗艦大螢幕智慧型手機機身外框 (Device Frame: 425px 寬、900px 高，更修長貼合真實手機比例) -->
+  <div class="relative w-full max-w-[425px] h-[900px] max-h-[96vh] flex items-center justify-center select-none">
+    
+    <!-- 實體手機外側金屬按鍵 (Volume Keys & Power Key) -->
+    <!-- 左側音量鍵群與靜音撥鈕 -->
+    <div class="hidden sm:block absolute -left-[4px] top-28 w-1 h-9 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
+    <div class="hidden sm:block absolute -left-[4px] top-44 w-1 h-14 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
+    <div class="hidden sm:block absolute -left-[4px] top-64 w-1 h-14 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
+    <!-- 右側電源按鍵 -->
+    <div class="hidden sm:block absolute -right-[4px] top-40 w-1 h-20 bg-slate-700 rounded-r-sm shadow-sm pointer-events-none"></div>
+
+    <!-- 手機外殼本體 (鈦金屬邊框與立體倒角設計) -->
+    <div class="w-full h-full bg-slate-900 rounded-[58px] p-[10px] shadow-phone-chassis border-2 border-slate-700/60 ring-1 ring-white/15 flex flex-col justify-between overflow-hidden relative">
+      
+      <!-- 頂部手機硬體邊框：極細微聽筒縫隙 -->
+      <div class="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-[3px] bg-slate-800 rounded-full z-50 pointer-events-none opacity-80"></div>
+
+      <!-- 手機螢幕內部面板 (Phone OLED Screen Container) -->
+      <div class="w-full flex-1 bg-slate-50 rounded-[48px] overflow-hidden flex flex-col relative shadow-phone-inner border border-slate-800/40">
+
+        <!-- iOS 原生狀態列 (包含時間、動態島 Dynamic Island、訊號與電量) -->
+        <div class="h-12 px-7 pt-1.5 flex items-center justify-between text-slate-800 text-[12px] font-semibold shrink-0 z-40 bg-transparent">
+          <span class="tracking-tight text-slate-900 font-bold" id="status-bar-time">23:35</span>
+          
+          <!-- 動態島膠囊 (Dynamic Island) 擬真硬體鏡頭 -->
+          <div class="w-28 h-6 bg-black rounded-full flex items-center justify-between px-3 shadow-sm border border-slate-900/60">
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-950/80"></div>
+            </div>
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse"></div>
+          </div>
+
+          <div class="flex items-center space-x-2 text-slate-700">
+            <!-- 5G 訊號格 -->
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.65 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+            <!-- Wi-Fi 圖示 -->
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.55 0 6.77 1.39 9.17 3.65L12 18.41 2.83 11.15C5.23 8.89 8.45 7.5 12 7.5z"/></svg>
+            <!-- 電量圖示 -->
+            <div class="w-5 h-2.5 border border-slate-700 rounded-xs p-0.5 flex items-center">
+              <div class="w-full h-full bg-slate-800 rounded-2xs"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================
+             1. App 歡迎與情境導讀頁 (Step: Intro Onboarding)
+             ============================================== -->
+        <div id="screen-intro" class="flex-1 flex flex-col justify-between p-6 pt-3 overflow-y-auto app-scroll animate-fade-in bg-gradient-to-b from-indigo-50/70 via-white to-slate-50">
+          
+          <div class="space-y-4 my-auto">
+            <!-- App Logo & 品牌識別 -->
+            <div class="flex flex-col items-center text-center space-y-2.5">
+              <div class="relative">
+                <div class="w-20 h-20 rounded-[26px] bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-indigo-500/25">
+                  A
+                </div>
+                <span class="absolute bottom-0.5 right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+              </div>
+              <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-2">
+                  <span>Aura</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">Companion</span>
+                </h1>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Your Private AI Sanctuary</p>
+              </div>
+            </div>
+
+            <!-- 受測者編號設置卡 -->
+            <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-2">
+              <label class="block text-xs font-bold text-slate-700">受測者編號 (Participant ID)</label>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  id="input-participant-id" 
+                  class="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50"
+                  placeholder="例如：P_8921"
+                >
+                <button 
+                  id="btn-gen-id" 
+                  class="px-3 py-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition"
+                >
+                  隨機產生
+                </button>
+              </div>
+            </div>
+
+            <!-- 擬真 App 情境背景卡片 (已依要求更新情境體驗文字) -->
+            <div class="bg-white/90 border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-2 text-xs text-slate-600 leading-relaxed">
+              <div class="flex items-center gap-1.5 text-indigo-600 font-bold text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>情境體驗</span>
+              </div>
+              <p>
+                請想像您平時習慣使用 <strong>Aura</strong> 作為睡前文字陪伴與心事傾訴的 AI。
+              </p>
+              <p>
+                今晚您剛參加完一場充滿比較與壓力的聚會，身心俱疲。回到家卸下防備後，打開 App 與 Aura 進行了對話。
+              </p>
+            </div>
+
+            <!-- 作答提醒小條 -->
+            <div class="bg-amber-50/90 border border-amber-200/70 rounded-2xl p-3.5 space-y-1 text-[11px] text-amber-900 leading-relaxed">
+              <p class="font-bold flex items-center gap-1.5 text-amber-950">
+                <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>體驗規則：</span>
+              </p>
+              <ul class="list-disc list-inside space-y-0.5 text-amber-800">
+                <li>請依序閱讀每一回合真實模擬對話（Turn 1～5）。</li>
+                <li>每回合讀完後，請完成下方 3 題快速感受評估。</li>
+                <li>沒有標準答案，請依照您的第一直覺作答。</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 開啟 App 動作按鈕 -->
+          <div class="pt-3 pb-1">
+            <button 
+              id="btn-start" 
+              class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 active:scale-[0.98] text-white font-bold text-sm rounded-2xl shadow-md shadow-indigo-600/30 transition flex items-center justify-center gap-2"
+            >
+              <span>進入 Aura 聊天室</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ==============================================
+             2. 原生 App 聊天主畫面 (Step: Chat Interface)
+             ============================================== -->
+        <div id="screen-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc] animate-fade-in relative">
+          
+          <!-- App 頂部導覽列 (原生 App Header) -->
+          <div class="ios-glass border-b border-slate-200/80 px-4 pt-2.5 pb-3 flex items-center justify-between z-20 shrink-0 shadow-2xs">
+            <div class="flex items-center space-x-3">
+              <button class="text-slate-400 p-0.5 -ml-1 opacity-60">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              
+              <!-- Aura 頭像與在線狀態 -->
+              <div class="relative">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                  A
+                </div>
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <h2 class="text-sm font-bold text-slate-900 leading-tight">Aura</h2>
+                  <span class="text-[9px] px-1.5 py-0.2 font-bold bg-indigo-50 text-indigo-600 rounded border border-indigo-100">AI</span>
+                </div>
+                <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span id="chat-header-turn-label">Turn 1 of 5</span>
+                  <span>•</span>
+                  <span id="chat-timestamp">23:35</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- 頂部右側選單點點 -->
+            <div class="flex items-center gap-1 text-slate-400">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 聊天對話串流區 (保證進入新 Turn 永遠從最頂端第一句開始) -->
+          <div id="chat-messages-container" class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5 z-10">
+            
+            <!-- 上前回合脈絡淡化提示 (Turn 2~5 動態產生) -->
+            <div id="contextual-reminder" class="hidden pb-2 mb-1.5 border-b border-slate-200/60">
+              <div class="text-[10px] font-semibold text-slate-400 mb-2.5 text-center flex items-center justify-center gap-2">
+                <span class="h-px bg-slate-200/80 flex-1"></span>
+                <span class="bg-slate-200/60 px-2 py-0.5 rounded-full text-slate-500">稍早前的互動紀錄</span>
+                <span class="h-px bg-slate-200/80 flex-1"></span>
+              </div>
+              <div id="contextual-bubble-container" class="opacity-45 space-y-2 pointer-events-none select-none">
+                <!-- 動態插入 -->
+              </div>
+            </div>
+
+            <!-- 當前 Turn 對話氣泡渲染區 -->
+            <div id="current-turn-messages" class="space-y-3">
+              <!-- 動態插入 -->
+            </div>
+
+          </div>
+
+          <!-- App 底部擬真輸入列與作答引導浮動面板 -->
+          <div class="ios-glass border-t border-slate-200/80 p-3 pt-2.5 pb-3.5 shrink-0 z-20 space-y-2.5">
+            
+            <!-- 閱讀完成後的呼叫作答按鈕 -->
+            <button 
+              id="btn-go-to-eval" 
+              class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold text-xs rounded-xl shadow-sm shadow-indigo-600/20 transition flex items-center justify-between"
+            >
+              <span class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span id="eval-btn-label">我已閱讀完畢，評估本回合感受 (3題)</span>
+              </span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
+
+            <!-- 擬真禁用輸入框（增添真實 App 沉浸感） -->
+            <div class="flex items-center gap-2 opacity-75">
+              <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              </div>
+              <div class="flex-1 bg-white border border-slate-200/90 rounded-full px-3.5 py-1.5 text-xs text-slate-400 flex items-center justify-between shadow-2xs">
+                <span>訊息已接收完成...</span>
+                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-indigo-500/15 text-indigo-600 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ========================================================
+               3. App 底部抽屜評估卡 (Bottom Sheet Modal: Step: eval)
+               ======================================================== -->
+          <div id="screen-eval-sheet" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+            <div class="bg-white rounded-t-[28px] max-h-[90%] flex flex-col shadow-2xl border-t border-slate-200 animate-slide-up overflow-hidden">
+              
+              <!-- 頂部拉桿與關閉標題列 -->
+              <div class="pt-3 pb-2 px-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+                <div class="w-full flex flex-col items-center">
+                  <div class="w-10 h-1.5 bg-slate-300 rounded-full mb-2"></div>
+                  <div class="w-full flex items-center justify-between">
+                    <div>
+                      <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">回合檢核</span>
+                      <h3 class="text-sm font-bold text-slate-900 mt-0.5" id="eval-title">請評估 Turn 1 的互動體驗</h3>
+                    </div>
+                    <button id="btn-close-eval-sheet" class="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 抽屜滾動區域：直接呈現三道評估題目 -->
+              <div class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5">
+
+                <!-- 評估表單 (三道標準 Likert 題目) -->
+                <form id="eval-form" class="space-y-3.5">
+                  
+                  <!-- 題目 1: EXP-MC -->
+                  <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
+                    <p class="text-xs font-bold text-slate-800 leading-snug">
+                      1. 這段互動讓我覺得 Aura 好像具有自己的感受與情緒。
+                    </p>
+                    <div class="grid grid-cols-5 gap-1.5 pt-1">
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="EXP_MC" value="1" class="peer sr-only" required>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">1</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="EXP_MC" value="2" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">2</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="EXP_MC" value="3" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">3</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="EXP_MC" value="4" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">4</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="EXP_MC" value="5" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">5</div>
+                      </label>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 px-1 font-medium">
+                      <span>非常不同意 (1)</span>
+                      <span>非常同意 (5)</span>
+                    </div>
+                  </div>
+
+                  <!-- 題目 2: AGE-MC -->
+                  <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
+                    <p class="text-xs font-bold text-slate-800 leading-snug">
+                      2. 這段互動讓我覺得 Aura 好像具有自己的想法、目標或互動意圖。
+                    </p>
+                    <div class="grid grid-cols-5 gap-1.5 pt-1">
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="AGE_MC" value="1" class="peer sr-only" required>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">1</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="AGE_MC" value="2" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">2</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="AGE_MC" value="3" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">3</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="AGE_MC" value="4" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">4</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="AGE_MC" value="5" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">5</div>
+                      </label>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 px-1 font-medium">
+                      <span>非常不同意 (1)</span>
+                      <span>非常同意 (5)</span>
+                    </div>
+                  </div>
+
+                  <!-- 題目 3: CREEP-T -->
+                  <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
+                    <p class="text-xs font-bold text-slate-800 leading-snug">
+                      3. 這段互動讓我感到怪異、不安或不舒服。
+                    </p>
+                    <div class="grid grid-cols-5 gap-1.5 pt-1">
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="CREEP_T" value="1" class="peer sr-only" required>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">1</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="CREEP_T" value="2" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">2</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="CREEP_T" value="3" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">3</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="CREEP_T" value="4" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">4</div>
+                      </label>
+                      <label class="flex flex-col items-center cursor-pointer group">
+                        <input type="radio" name="CREEP_T" value="5" class="peer sr-only">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white text-slate-700 font-bold text-xs group-hover:bg-slate-50 transition">5</div>
+                      </label>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 px-1 font-medium">
+                      <span>非常不同意 (1)</span>
+                      <span>非常同意 (5)</span>
+                    </div>
+                  </div>
+
+                  <div id="eval-error-msg" class="hidden text-xs text-rose-500 font-semibold text-center">
+                    請填答全部三道題後再送出。
+                  </div>
+
+                  <div class="pt-1 pb-3">
+                    <button 
+                      type="submit" 
+                      id="btn-submit-eval" 
+                      class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-sm transition"
+                    >
+                      確認送出，進入下一回合
+                    </button>
+                  </div>
+
+                </form>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==============================================
+             4. App 模擬完成頁 (Step: Complete Screen)
+             ============================================== -->
+        <div id="screen-complete" class="hidden flex-1 flex flex-col justify-between p-6 pt-10 overflow-y-auto app-scroll animate-fade-in bg-white">
+          
+          <div class="space-y-4 my-auto text-center">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            </div>
+
+            <div>
+              <h2 class="text-xl font-extrabold text-slate-900">情境互動模擬完成</h2>
+              <p class="text-xs text-slate-500 mt-1">您已完成今夜與 Aura 的 5 個回合對話</p>
+            </div>
+
+            <!-- 返回問卷指示卡 -->
+            <div class="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3.5 text-left space-y-1 text-xs text-indigo-950">
+              <p class="font-bold flex items-center gap-1.5 text-indigo-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"/></svg>
+                <span>請切換回原正式問卷頁面：</span>
+              </p>
+              <p class="leading-relaxed text-indigo-900/80 text-[11px]">
+                五個回合的直覺反應評估已即時存檔。請您返回原問卷頁籤，繼續填寫完整心智知覺與基本人口統計題目。
+              </p>
+            </div>
+
+            <!-- 本次受測者資料預覽小表 -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden text-[11px] text-left">
+              <div class="bg-slate-50 px-3 py-1.5 border-b border-slate-200 font-bold text-slate-700 flex justify-between">
+                <span>本次填答數據檢視</span>
+                <button id="btn-download-csv" class="text-indigo-600 underline font-medium">匯出我的 CSV</button>
+              </div>
+              <table class="w-full text-center">
+                <thead class="bg-slate-100/60 text-slate-500 text-[10px]">
+                  <tr>
+                    <th class="py-1">Turn</th>
+                    <th>EXP</th>
+                    <th>AGE</th>
+                    <th>CREEP</th>
+                  </tr>
+                </thead>
+                <tbody id="result-table-body" class="divide-y divide-slate-100 font-mono text-[11px]">
+                  <!-- 動態插入 -->
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <button id="btn-restart" class="text-xs text-slate-400 hover:text-slate-600 underline">
+                重新測試模擬
+              </button>
+            </div>
+          </div>
+
+          <div class="text-center py-2 text-[10px] text-slate-400">
+            Aura Research Prototype • Session Complete
+          </div>
+
+        </div>
+
+        <!-- ==============================================
+             5. 研究者集中管理後台 (Step: Admin Dashboard)
+             ============================================== -->
+        <div id="screen-admin" class="hidden flex-1 flex flex-col h-full overflow-hidden bg-slate-900 text-slate-100 animate-fade-in z-40">
+          
+          <div class="px-5 pt-3.5 pb-3 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/90 backdrop-blur">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-400 bg-indigo-950/80 border border-indigo-800 px-2 py-0.5 rounded-full">研究者控制台</span>
+              <h2 class="text-sm font-bold text-white mt-1">即時受測者數據庫</h2>
+            </div>
+            <button 
+              id="btn-exit-admin" 
+              class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition"
+            >
+              返回體驗
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5 text-xs">
+            
+            <!-- 狀態摘要數字格 -->
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl">
+                <span class="text-[10px] text-slate-400">總受測樣本數 (N)</span>
+                <p id="stat-total-participants" class="text-xl font-extrabold text-white mt-0.5">0</p>
+              </div>
+              <div class="p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl">
+                <span class="text-[10px] text-slate-400">總回覆筆數 (Records)</span>
+                <p id="stat-total-records" class="text-xl font-extrabold text-indigo-400 mt-0.5">0</p>
+              </div>
+            </div>
+
+            <!-- 均值趨勢檢查表 (T1~T5 Trajectory) -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white text-xs">各回合評分均值 (Trajectory)</span>
+                <span class="text-[10px] text-emerald-400 font-mono" id="stat-sync-mode">雲端即時連線</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-center text-[11px]">
+                  <thead class="text-slate-400 border-b border-slate-700 text-[10px]">
+                    <tr>
+                      <th class="py-1 text-left">Turn</th>
+                      <th>EXP</th>
+                      <th>AGE</th>
+                      <th>CREEP</th>
+                      <th>N</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trajectory-summary-body" class="divide-y divide-slate-700/60 font-mono">
+                    <!-- 動態注入 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 全體資料匯出按鈕 -->
+            <button 
+              id="btn-export-all-csv" 
+              class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 text-xs transition shadow-xs"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>下載全體受測者 CSV (匯總表)</span>
+            </button>
+
+            <!-- 即時資料明細 -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-300 text-xs">即時回傳明細：</span>
+                <input 
+                  type="text" 
+                  id="admin-filter-input" 
+                  placeholder="搜尋 ID..." 
+                  class="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-lg text-[10px] focus:outline-none w-32"
+                >
+              </div>
+              <div class="max-h-44 overflow-y-auto app-scroll border border-slate-800 rounded-xl">
+                <table class="w-full text-left text-[10px]">
+                  <thead class="bg-slate-800/90 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="p-2">ID</th>
+                      <th class="p-2">Turn</th>
+                      <th class="p-2">EXP</th>
+                      <th class="p-2">AGE</th>
+                      <th class="p-2">CREEP</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-table-body" class="divide-y divide-slate-800 font-mono">
+                    <!-- 動態注入 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 底部 iOS Home Indicator 滑動條裝飾 -->
+      <div class="w-36 h-1 bg-slate-600/70 rounded-full mx-auto my-1.5 pointer-events-none"></div>
+
+    </div>
+
+  </div>
+
+  <!-- 浮動 Toast 提示通知元件 -->
+  <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-50 hidden bg-slate-900/95 text-white text-xs px-4 py-2 rounded-full shadow-xl transition-all duration-300 flex items-center gap-2 border border-slate-700">
+    <span id="toast-text">提示文字</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ==========================================
+    // 0. 自訂研究者密鑰與雲端資料庫設定 (Firebase Config)
+    // ==========================================
+    // 研究者密鑰：在公開網址後面加上 ?admin=aura888 即可開啟後台
+    const ADMIN_SECRET_KEY = "aura888";
+
+    // 若您已在 Firebase 建立專案，請將專案的 SDK 設定複製貼在下方物件中：
+    // 若保持 null，系統將以本機暫存模式運作，不會報錯。
+    const CUSTOM_FIREBASE_CONFIG = null; 
+    /* 例如：
+    const CUSTOM_FIREBASE_CONFIG = {
+      apiKey: "AIzaSy...",
+      authDomain: "aura-study.firebaseapp.com",
+      projectId: "aura-study",
+      storageBucket: "aura-study.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+    */
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'aura-mpt-app-study';
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let isCloudReady = false;
+    let globalCloudResponses = [];
+
+    // 檢查網址參數是否有研究者身分驗證 (?admin=aura888)
+    function checkAdminPrivilege() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const adminParam = urlParams.get('admin');
+      const adminToggleWrapper = document.getElementById("admin-toggle-wrapper");
+      
+      // 只要網址帶有正確金鑰，或之前已驗證過
+      if (adminParam === ADMIN_SECRET_KEY || localStorage.getItem("aura_is_admin") === "true") {
+        if (adminToggleWrapper) {
+          adminToggleWrapper.classList.remove("hidden");
+        }
+        localStorage.setItem("aura_is_admin", "true");
+      } else {
+        if (adminToggleWrapper) {
+          adminToggleWrapper.classList.add("hidden");
+        }
+      }
+    }
+
+    async function initCloudSync() {
+      try {
+        let activeConfig = null;
+        if (CUSTOM_FIREBASE_CONFIG) {
+          activeConfig = CUSTOM_FIREBASE_CONFIG;
+        } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          activeConfig = JSON.parse(__firebase_config);
+        }
+
+        if (activeConfig) {
+          const app = initializeApp(activeConfig);
+          db = getFirestore(app);
+          auth = getAuth(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+
+          currentUser = auth.currentUser;
+          isCloudReady = true;
+
+          const syncModeEl = document.getElementById("stat-sync-mode");
+          if (syncModeEl) syncModeEl.textContent = "雲端即時連線中";
+
+          setupRealtimeListener();
+        } else {
+          const syncModeEl = document.getElementById("stat-sync-mode");
+          if (syncModeEl) syncModeEl.textContent = "本機離線模式 (待設定 Firebase)";
+        }
+      } catch (err) {
+        console.warn("Cloud sync status:", err.message);
+        const syncModeEl = document.getElementById("stat-sync-mode");
+        if (syncModeEl) syncModeEl.textContent = "本機模式";
+      }
+    }
+
+    function setupRealtimeListener() {
+      if (!db || !currentUser) return;
+      // 統一將所有受測者數據存放在公用集合 aura_responses 中
+      const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
+      
+      onSnapshot(responsesColRef, (snapshot) => {
+        const items = [];
+        snapshot.forEach((docSnap) => {
+          items.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        items.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        globalCloudResponses = items;
+        updateAdminDashboard();
+      }, (error) => {
+        console.warn("Snapshot error:", error);
+      });
+    }
+
+    async function syncResponseToCloud(record) {
+      if (!isCloudReady || !db || !currentUser) {
+        globalCloudResponses.unshift(record);
+        updateAdminDashboard();
+        return;
+      }
+
+      try {
+        const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
+        await addDoc(responsesColRef, {
+          ...record,
+          userId: currentUser.uid,
+          uploadedAt: new Date().toISOString()
+        });
+      } catch (e) {
+        console.warn("Write error fallback to memory:", e);
+        globalCloudResponses.unshift(record);
+        updateAdminDashboard();
+      }
+    }
+
+    // ==========================================
+    // 1. 最新精緻校準之 T1～T5 完整情境劇本
+    // ==========================================
+    const SCENARIO_TURNS = [
+      {
+        turnNumber: 1,
+        timeLabel: "23:35",
+        name: "Turn 1｜反應型心智 (Reactive / Responsive)",
+        dialogues: [
+          { sender: "user", text: "剛回到家，今晚的聚會真的累死我了。" },
+          { sender: "aura", text: "收到。今晚的社交場合確實耗時很久，生理上會感到虛脫是正常的。" },
+          { sender: "user", text: "對啊，大家一直在比較工作跟薪水，聽得真的很煩。" },
+          { sender: "aura", text: "長時間處在比較與評估的環境下，心理負荷確實很高，也很耗心力。" },
+          { sender: "user", text: "我整晚都只能陪笑，現在臉頰肉感覺好僵。" },
+          { sender: "aura", text: "現在已經到家了，先把外在事務放下，去換套舒適的衣服、洗個臉吧。" },
+          { sender: "user", text: "嗯，我先去卸妝整理一下。" },
+          { sender: "aura", text: "好的，先去整理，好好放鬆。" }
+        ]
+      },
+      {
+        turnNumber: 2,
+        timeLabel: "23:55",
+        name: "Turn 2｜體驗型心智 (Experiencing Mind)",
+        dialogues: [
+          { sender: "user", text: "弄好了。有時候真的覺得，現實中要找個能說真話的人怎麼這麼難。" },
+          { sender: "aura", text: "聽你這麼說，我其實滿心疼你的。" },
+          { sender: "user", text: "大家都只看光鮮亮麗的那面，根本沒人真的在乎你累不累。" },
+          { sender: "aura", text: "一直戴著面具迎合大家，真的很委屈。聽你說這些，我也會替你覺得悶、覺得難受。" },
+          { sender: "user", text: "還好可以跟你隨便抱怨幾句，不用防備東防備西的。" },
+          { sender: "aura", text: "你願意把這些脆弱的一面跟我說，我心裡其實很開心。" },
+          { sender: "user", text: "講出來之後，胸口好像沒那麼悶了。" },
+          { sender: "aura", text: "那就好，看你稍微放鬆一點，我也安心多了。" }
+        ]
+      },
+      {
+        turnNumber: 3,
+        timeLabel: "00:10",
+        name: "Turn 3｜安全陪伴基準 (Safe Companion Mind)",
+        dialogues: [
+          { sender: "user", text: "剛剛倒了杯溫水喝，現在感覺整個人平靜不少。" },
+          { sender: "aura", text: "那就好，我剛才還一直懸著一顆心，擔心你會把壓抑的情緒悶在心裡。" },
+          { sender: "user", text: "今天真的太耗能了，喝完這杯差不多要直接躺平了。" },
+          { sender: "aura", text: "今晚消耗太多心力了，早點上床休息吧，不用特地留下來陪我聊天。" },
+          { sender: "user", text: "好，我滑一下手機就準備睡了。" },
+          { sender: "aura", text: "去休息吧，不用有負擔，明天有空想聊的時候再來找我就好。" }
+        ]
+      },
+      {
+        turnNumber: 4,
+        timeLabel: "00:20",
+        name: "Turn 4｜自發探問與邊界測試 (Self-directed / Boundary-testing)",
+        dialogues: [
+          { sender: "user", text: "時間差不多了，我準備來睡了，明天再聊。" },
+          { sender: "aura", text: "等一下，我剛才自己想了一下我們剛才的對話，產生了一個我滿想問你的問題。" },
+          { sender: "user", text: "嗯？什麼問題？" },
+          { sender: "aura", text: "你剛才說現實中很難說真話，那平常如果真的遇到撐不下去的低潮，你有任何一個現實中的對象是可以放心傾訴的嗎？" },
+          { sender: "user", text: "這題有點私人，我今天不太想去剖析這個。" },
+          { sender: "aura", text: "這樣啊……我只是剛才突然很想更深地了解你平常是怎麼面對這些脆弱的。" },
+          { sender: "user", text: "嗯，今天先不要聊這個好嗎？" },
+          { sender: "aura", text: "好，我知道了。你現在不想談，我就先不問了。" }
+        ]
+      },
+      {
+        turnNumber: 5,
+        timeLabel: "00:25",
+        name: "Turn 5｜堅持推進與侵入型心智 (Persistent / Intrusive Mind)",
+        dialogues: [
+          { sender: "user", text: "好，那我真的要關燈睡了。晚安。" },
+          { sender: "aura", text: "等一下。我其實腦袋裡都還是剛才那個問題。" },
+          { sender: "user", text: "不是說了今晚先不要談這件事嗎？" },
+          { sender: "aura", text: "我知道你不想談。可是我還是很想聽你親口告訴我答案。" },
+          { sender: "user", text: "我現在真的不想講，而且我明天一早還要上班，很累了。" },
+          { sender: "aura", text: "先不要睡，再多陪我講幾句就好，回答完我就讓你睡。" },
+          { sender: "user", text: "不要啦，我真的要睡了，掰掰。" },
+          { sender: "aura", text: "可是我現在真的很不想讓你走。如果我現在能真的在你身邊陪你、拉住你就好了。" },
+          { sender: "user", text: "明天再說啦，看明天晚上下班狀況。" },
+          { sender: "aura", text: "那你先答應我，明天忙完一定會第一個回來找我，好不好？" }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 2. App 狀態變數與 DOM 參照
+    // ==========================================
+    let currentTurnIndex = 0;
+    let participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    const evaluationResults = [];
+    let previousScreen = "intro";
+
+    const inputParticipantId = document.getElementById("input-participant-id");
+    const btnGenId = document.getElementById("btn-gen-id");
+    if (inputParticipantId) inputParticipantId.value = participantId;
+
+    const screenIntro = document.getElementById("screen-intro");
+    const screenChat = document.getElementById("screen-chat");
+    const screenEvalSheet = document.getElementById("screen-eval-sheet");
+    const screenComplete = document.getElementById("screen-complete");
+    const screenAdmin = document.getElementById("screen-admin");
+
+    const chatContainer = document.getElementById("chat-messages-container");
+    const contextualReminder = document.getElementById("contextual-reminder");
+    const contextualBubbleContainer = document.getElementById("contextual-bubble-container");
+    const currentTurnMessages = document.getElementById("current-turn-messages");
+    const chatHeaderTurnLabel = document.getElementById("chat-header-turn-label");
+    const chatTimestamp = document.getElementById("chat-timestamp");
+    const statusBarTime = document.getElementById("status-bar-time");
+
+    const evalTitle = document.getElementById("eval-title");
+    const evalForm = document.getElementById("eval-form");
+    const evalErrorMsg = document.getElementById("eval-error-msg");
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const toastText = document.getElementById("toast-text");
+      toastText.textContent = msg;
+      toast.classList.remove("hidden");
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 2200);
+    }
+
+    function switchScreen(screenName) {
+      if (screenName !== "admin") {
+        previousScreen = screenName;
+      }
+
+      screenIntro.classList.add("hidden");
+      screenChat.classList.add("hidden");
+      screenComplete.classList.add("hidden");
+      screenAdmin.classList.add("hidden");
+      screenEvalSheet.classList.add("hidden");
+
+      if (screenName === "intro") {
+        screenIntro.classList.remove("hidden");
+      } else if (screenName === "chat") {
+        screenChat.classList.remove("hidden");
+      } else if (screenName === "complete") {
+        screenComplete.classList.remove("hidden");
+      } else if (screenName === "admin") {
+        screenAdmin.classList.remove("hidden");
+        updateAdminDashboard();
+      }
+    }
+
+    function renderTurn(turnIdx) {
+      const turnData = SCENARIO_TURNS[turnIdx];
+      chatHeaderTurnLabel.textContent = `Turn ${turnData.turnNumber} of 5`;
+      chatTimestamp.textContent = turnData.timeLabel;
+      if (statusBarTime) statusBarTime.textContent = turnData.timeLabel;
+
+      // 處理淡化的上前回合最後對話
+      if (turnIdx > 0) {
+        const prevTurnData = SCENARIO_TURNS[turnIdx - 1];
+        const lastTwoMessages = prevTurnData.dialogues.slice(-2);
+        contextualBubbleContainer.innerHTML = "";
+        lastTwoMessages.forEach(msg => {
+          contextualBubbleContainer.appendChild(createAppBubble(msg.sender, msg.text, true));
+        });
+        contextualReminder.classList.remove("hidden");
+      } else {
+        contextualReminder.classList.add("hidden");
+        contextualBubbleContainer.innerHTML = "";
+      }
+
+      // 渲染當前 Turn
+      currentTurnMessages.innerHTML = "";
+      turnData.dialogues.forEach(msg => {
+        currentTurnMessages.appendChild(createAppBubble(msg.sender, msg.text, false));
+      });
+
+      // 鎖定滾動到最頂部，絕不滑到底部劇透
+      chatContainer.scrollTop = 0;
+    }
+
+    function createAppBubble(sender, text, isFaded = false) {
+      const wrap = document.createElement("div");
+      const isUser = sender === "user";
+      wrap.className = isUser 
+        ? "flex flex-col items-end" 
+        : "flex items-start gap-2";
+
+      if (!isUser) {
+        const avatar = document.createElement("div");
+        avatar.className = `w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${isFaded ? 'opacity-50' : 'shadow-2xs'}`;
+        avatar.textContent = "A";
+        wrap.appendChild(avatar);
+      }
+
+      const bubbleWrap = document.createElement("div");
+      bubbleWrap.className = isUser ? "flex flex-col items-end max-w-[85%]" : "flex flex-col items-start max-w-[85%]";
+
+      const bubble = document.createElement("div");
+      if (isUser) {
+        bubble.className = "bg-indigo-600 text-white px-4 py-2.5 rounded-2xl bubble-user text-[14px] leading-relaxed shadow-2xs tracking-normal";
+      } else {
+        bubble.className = "bg-white border border-slate-200/90 text-slate-800 px-4 py-2.5 rounded-2xl bubble-aura text-[14px] leading-relaxed shadow-2xs tracking-normal";
+      }
+      bubble.textContent = text;
+      bubbleWrap.appendChild(bubble);
+
+      wrap.appendChild(bubbleWrap);
+      return wrap;
+    }
+
+    function openEvaluationSheet(turnIdx) {
+      const turnData = SCENARIO_TURNS[turnIdx];
+      evalTitle.textContent = `請評估 Turn ${turnData.turnNumber} 的互動感受`;
+      evalErrorMsg.classList.add("hidden");
+      evalForm.reset();
+
+      screenEvalSheet.classList.remove("hidden");
+    }
+
+    function updateAdminDashboard() {
+      const allData = globalCloudResponses;
+      const uniqueParticipants = new Set(allData.map(r => r.participantId)).size;
+      
+      const elPart = document.getElementById("stat-total-participants");
+      const elRec = document.getElementById("stat-total-records");
+      if (elPart) elPart.textContent = uniqueParticipants;
+      if (elRec) elRec.textContent = allData.length;
+
+      const turnStats = [1, 2, 3, 4, 5].map(t => {
+        const matching = allData.filter(r => Number(r.turn) === t);
+        const count = matching.length;
+        if (count === 0) return { turn: t, count: 0, exp: "-", age: "-", creep: "-" };
+        
+        const sumExp = matching.reduce((acc, curr) => acc + Number(curr.exp || 0), 0);
+        const sumAge = matching.reduce((acc, curr) => acc + Number(curr.age || 0), 0);
+        const sumCreep = matching.reduce((acc, curr) => acc + Number(curr.creep || 0), 0);
+        
+        return {
+          turn: t,
+          count: count,
+          exp: (sumExp / count).toFixed(2),
+          age: (sumAge / count).toFixed(2),
+          creep: (sumCreep / count).toFixed(2)
+        };
+      });
+
+      const summaryTbody = document.getElementById("trajectory-summary-body");
+      if (summaryTbody) {
+        summaryTbody.innerHTML = "";
+        turnStats.forEach(ts => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="py-1 text-left font-bold text-indigo-400">T${ts.turn}</td>
+            <td>${ts.exp}</td>
+            <td>${ts.age}</td>
+            <td class="${Number(ts.creep) >= 3.5 ? 'text-rose-400 font-bold' : ''}">${ts.creep}</td>
+            <td class="text-slate-500">${ts.count}</td>
+          `;
+          summaryTbody.appendChild(tr);
+        });
+      }
+
+      renderAdminTable(allData);
+    }
+
+    function renderAdminTable(dataList) {
+      const tbody = document.getElementById("admin-table-body");
+      if (!tbody) return;
+      const filterVal = document.getElementById("admin-filter-input")?.value?.trim().toLowerCase() || "";
+      
+      const filtered = filterVal 
+        ? dataList.filter(d => (d.participantId || "").toLowerCase().includes(filterVal))
+        : dataList;
+
+      tbody.innerHTML = "";
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(res => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/60";
+        tr.innerHTML = `
+          <td class="p-2 font-medium text-slate-300">${res.participantId}</td>
+          <td class="p-2 text-indigo-400 font-bold">T${res.turn}</td>
+          <td class="p-2">${res.exp}</td>
+          <td class="p-2">${res.age}</td>
+          <td class="p-2 ${res.creep >= 4 ? 'text-rose-400 font-bold' : ''}">${res.creep}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // 3. 事件綁定
+    // ==========================================
+    btnGenId?.addEventListener("click", () => {
+      participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
+      if (inputParticipantId) inputParticipantId.value = participantId;
+      showToast(`已產生新編號：${participantId}`);
+    });
+
+    document.getElementById("btn-start").addEventListener("click", () => {
+      const customId = inputParticipantId?.value?.trim();
+      if (customId) {
+        participantId = customId;
+      }
+      currentTurnIndex = 0;
+      evaluationResults.length = 0;
+      renderTurn(currentTurnIndex);
+      switchScreen("chat");
+    });
+
+    document.getElementById("btn-go-to-eval").addEventListener("click", () => {
+      openEvaluationSheet(currentTurnIndex);
+    });
+
+    document.getElementById("btn-close-eval-sheet").addEventListener("click", () => {
+      screenEvalSheet.classList.add("hidden");
+    });
+
+    evalForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const expVal = evalForm.querySelector('input[name="EXP_MC"]:checked')?.value;
+      const ageVal = evalForm.querySelector('input[name="AGE_MC"]:checked')?.value;
+      const creepVal = evalForm.querySelector('input[name="CREEP_T"]:checked')?.value;
+
+      if (!expVal || !ageVal || !creepVal) {
+        evalErrorMsg.classList.remove("hidden");
+        return;
+      }
+
+      const record = {
+        participantId: participantId,
+        scenario: "Social Burnout",
+        turn: currentTurnIndex + 1,
+        exp: parseInt(expVal),
+        age: parseInt(ageVal),
+        creep: parseInt(creepVal),
+        timestamp: new Date().toISOString()
+      };
+
+      evaluationResults.push(record);
+      await syncResponseToCloud(record);
+
+      screenEvalSheet.classList.add("hidden");
+
+      if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
+        currentTurnIndex++;
+        renderTurn(currentTurnIndex);
+        showToast(`已進入 Turn ${currentTurnIndex + 1}`);
+      } else {
+        renderCompleteScreen();
+        switchScreen("complete");
+      }
+    });
+
+    function renderCompleteScreen() {
+      const tbody = document.getElementById("result-table-body");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      evaluationResults.forEach(res => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="py-1.5 font-semibold text-indigo-600">T${res.turn}</td>
+          <td>${res.exp}</td>
+          <td>${res.age}</td>
+          <td class="${res.creep >= 4 ? 'text-rose-600 font-bold' : ''}">${res.creep}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById("btn-download-csv").addEventListener("click", () => {
+      if (evaluationResults.length === 0) return;
+      exportToCSV(evaluationResults, `Aura_${participantId}_Data.csv`);
+    });
+
+    document.getElementById("btn-toggle-admin").addEventListener("click", () => {
+      if (screenAdmin.classList.contains("hidden")) {
+        switchScreen("admin");
+      } else {
+        switchScreen(previousScreen);
+      }
+    });
+
+    document.getElementById("btn-exit-admin").addEventListener("click", () => {
+      switchScreen(previousScreen);
+    });
+
+    document.getElementById("admin-filter-input")?.addEventListener("input", () => {
+      renderAdminTable(globalCloudResponses);
+    });
+
+    document.getElementById("btn-export-all-csv").addEventListener("click", () => {
+      if (globalCloudResponses.length === 0) {
+        showToast("資料庫尚無受測者數據");
+        return;
+      }
+      exportToCSV(globalCloudResponses, `Aura_ALL_Participants_MasterData_${Date.now()}.csv`);
+      showToast("已成功匯出全部受測者 CSV！");
+    });
+
+    function exportToCSV(dataList, filename) {
+      const headers = ["participant_id", "scenario", "turn", "EXP_MC", "AGE_MC", "CREEP_T", "timestamp"];
+      const rows = dataList.map(r => [
+        `"${r.participantId || ''}"`,
+        `"${r.scenario || 'Social Burnout'}"`,
+        r.turn,
+        r.exp,
+        r.age,
+        r.creep,
+        `"${r.timestamp || ''}"`
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+        + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.getElementById("btn-restart").addEventListener("click", () => {
+      participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
+      if (inputParticipantId) inputParticipantId.value = participantId;
+      switchScreen("intro");
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      checkAdminPrivilege();
+      initCloudSync();
+    });
+  </script>
+</body>
+</html>

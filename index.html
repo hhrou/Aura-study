@@ -992,7 +992,7 @@
       renderAdminTable(allData);
     }
 
-    function renderAdminTable(dataList) {
+   function renderAdminTable(dataList) {
       const tbody = document.getElementById("admin-table-body");
       if (!tbody) return;
       const filterVal = document.getElementById("admin-filter-input")?.value?.trim().toLowerCase() || "";
@@ -1003,15 +1003,30 @@
 
       tbody.innerHTML = "";
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
         return;
       }
 
       filtered.forEach(res => {
+        // 格式化時間 (顯示 月/日 時:分:秒)
+        let formattedTime = "-";
+        if (res.timestamp) {
+          const date = new Date(res.timestamp);
+          if (!isNaN(date.getTime())) {
+            const m = String(date.getMonth() + 1).padStart(2, "0");
+            const d = String(date.getDate()).padStart(2, "0");
+            const hh = String(date.getHours()).padStart(2, "0");
+            const mm = String(date.getMinutes()).padStart(2, "0");
+            const ss = String(date.getSeconds()).padStart(2, "0");
+            formattedTime = `${m}/${d} ${hh}:${mm}:${ss}`;
+          }
+        }
+
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-800/60";
         tr.innerHTML = `
           <td class="p-2 font-medium text-slate-300">${res.participantId}</td>
+          <td class="p-2 text-slate-400 text-[9px] whitespace-nowrap">${formattedTime}</td>
           <td class="p-2 text-indigo-400 font-bold">T${res.turn}</td>
           <td class="p-2">${res.exp}</td>
           <td class="p-2">${res.age}</td>

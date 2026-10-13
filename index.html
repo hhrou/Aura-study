@@ -1075,16 +1075,37 @@
       screenEvalSheet.classList.add("hidden");
     });
 
-    evalForm.addEventListener("submit", async (e) => {
+ evalForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const expVal = evalForm.querySelector('input[name="EXP_MC"]:checked')?.value;
-      const ageVal = evalForm.querySelector('input[name="AGE_MC"]:checked')?.value;
-      const creepVal = evalForm.querySelector('input[name="CREEP_T"]:checked')?.value;
+      
+      const expRadio = evalForm.querySelector('input[name="EXP_MC"]:checked');
+      const ageRadio = evalForm.querySelector('input[name="AGE_MC"]:checked');
+      const creepRadio = evalForm.querySelector('input[name="CREEP_T"]:checked');
 
-      if (!expVal || !ageVal || !creepVal) {
-        evalErrorMsg.classList.remove("hidden");
+      // 嚴格阻擋：任一題沒填就中斷，絕不放行
+      if (!expRadio || !ageRadio || !creepRadio) {
+        if (evalErrorMsg) {
+          evalErrorMsg.textContent = "⚠️ 請完成全部 3 題感受評估後再送出！";
+          evalErrorMsg.classList.remove("hidden");
+        }
+        evalForm.scrollIntoView({ behavior: 'smooth' });
         return;
       }
+
+      if (evalErrorMsg) {
+        evalErrorMsg.classList.add("hidden");
+      }
+
+      // 防止受測者連續點擊造成多次跳回合
+      const submitBtn = document.getElementById("btn-submit-eval");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "資料儲存中...";
+      }
+
+      const expVal = expRadio.value;
+      const ageVal = ageRadio.value;
+      const creepVal = creepRadio.value;
 
       const record = {
         participantId: participantId,
@@ -1096,24 +1117,31 @@
         timestamp: new Date().toISOString()
       };
 
-      evaluationResults.push(record);
-      await syncResponseToCloud(record);
+      try {
+        evaluationResults.push(record);
+        await syncResponseToCloud(record);
 
-      screenEvalSheet.classList.add("hidden");
+        // 唯有雲端同步/存檔完成，才關閉抽屜並推進回合
+        screenEvalSheet.classList.add("hidden");
 
-      if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
-        currentTurnIndex++;
-        renderTurn(currentTurnIndex);
-        showToast(`已進入 Turn ${currentTurnIndex + 1}`);
-      } else {
-        renderCompleteScreen();
-        switchScreen("complete");
+        if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
+          currentTurnIndex++;
+          renderTurn(currentTurnIndex);
+          showToast(`已進入 Turn ${currentTurnIndex + 1}`);
+        } else {
+          renderCompleteScreen();
+          switchScreen("complete");
+        }
+      } catch (err) {
+        console.error("提交失敗：", err);
+        alert("資料儲存發生異常，請重新點擊送出！");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "確認送出，進入下一回合";
+        }
       }
     });
-
-    function renderCompleteScreen() {
-  // 已移除受測者端表格，維持狀態正常
-}
 
     document.getElementById("btn-toggle-admin").addEventListener("click", () => {
       if (screenAdmin.classList.contains("hidden")) {

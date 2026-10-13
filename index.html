@@ -34,7 +34,6 @@
     }
   </script>
   <style>
-    /* 模擬 App 視窗滾動平滑與隱藏原生滾動條但保持滾動能力 */
     .app-scroll::-webkit-scrollbar {
       width: 4px;
     }
@@ -49,7 +48,6 @@
       background: rgba(100, 116, 139, 0.6);
     }
     
-    /* 蘋果風格毛玻璃與動態彈出動畫 */
     .ios-glass {
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(20px);
@@ -74,7 +72,6 @@
       animation: fadeIn 0.25s ease-out forwards;
     }
 
-    /* 氣泡尾巴與自然微陰影 */
     .bubble-user {
       border-bottom-right-radius: 4px !important;
     }
@@ -84,7 +81,8 @@
   </style>
 </head>
 <body class="bg-slate-950 text-slate-800 font-sans min-h-[100dvh] h-[100dvh] w-full flex flex-col items-center justify-center p-0 overflow-hidden">
-  <!-- 研究者後台浮動快捷按鈕 (預設隱藏 hidden，僅在網址包含 ?admin=aura888 時向研究者展示) -->
+  
+  <!-- 研究者後台浮動快捷按鈕 (?admin=aura888) -->
   <div id="admin-toggle-wrapper" class="hidden fixed top-4 right-4 z-50 flex items-center gap-2">
     <button 
       id="btn-toggle-admin" 
@@ -96,29 +94,29 @@
     </button>
   </div>
 
-  <!-- 擬真旗艦大螢幕智慧型手機機身外框：上下各留 6px 超細懸浮邊界，機身垂直拉到極限 -->
+  <!-- 手機外框容器 -->
   <div class="relative w-full max-w-[425px] flex flex-col items-center justify-center select-none" style="height: calc(100dvh - 12px); max-height: calc(100dvh - 12px);">
     
-    <!-- 實體手機外側金屬按鍵 (Volume Keys & Power Key) -->
-    <!-- 左側音量鍵群與靜音撥鈕 -->
+    <!-- 側邊金屬實體按鍵裝飾 -->
     <div class="hidden sm:block absolute -left-[4px] top-28 w-1 h-9 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
     <div class="hidden sm:block absolute -left-[4px] top-44 w-1 h-14 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
     <div class="hidden sm:block absolute -left-[4px] top-64 w-1 h-14 bg-slate-700 rounded-l-sm shadow-sm pointer-events-none"></div>
-    <!-- 右側電源按鍵 -->
     <div class="hidden sm:block absolute -right-[4px] top-40 w-1 h-20 bg-slate-700 rounded-r-sm shadow-sm pointer-events-none"></div>
 
-    <!-- 手機外殼本體：固定外框圓角，上下左右黑邊收斂至極致 -->
+    <!-- 手機外殼本體 -->
     <div class="w-full h-full bg-slate-900 rounded-[44px] shadow-phone-chassis border-2 border-slate-700/60 ring-1 ring-white/15 flex flex-col justify-between overflow-hidden relative" style="padding: 4px 6px;"> 
-      <!-- 頂部手機硬體邊框：極細微聽筒縫隙 -->
+      
+      <!-- 頂部微細聽筒縫隙 -->
       <div class="absolute top-1.5 left-1/2 -translate-x-1/2 w-20 h-[3px] bg-slate-800 rounded-full z-50 pointer-events-none opacity-80"></div>
 
-      <!-- 手機螢幕內部面板 (Phone OLED Screen Container)：白色面板垂直徹底延展 -->
+      <!-- 手機 OLED 螢幕面板 -->
       <div class="w-full h-full flex-1 bg-slate-50 rounded-[38px] overflow-hidden flex flex-col relative shadow-phone-inner border border-slate-800/10">
-        <!-- iOS 原生狀態列 (高度收緊至 34px，給下方白色內容更多垂直空間) -->
+        
+        <!-- iOS 原生狀態列 -->
         <div class="h-[34px] px-6 pt-0.5 flex items-center justify-between text-slate-800 text-[12px] font-semibold shrink-0 z-40 bg-transparent">
           <span class="tracking-tight text-slate-900 font-bold" id="status-bar-time">23:35</span>
           
-          <!-- 動態島膠囊 (Dynamic Island) 擬真硬體鏡頭 -->
+          <!-- 動態島 -->
           <div class="w-24 h-5 bg-black rounded-full flex items-center justify-between px-2.5 shadow-sm border border-slate-900/60">
             <div class="w-2 h-2 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
               <div class="w-1.5 h-1.5 rounded-full bg-indigo-950/80"></div>
@@ -127,11 +125,8 @@
           </div>
 
           <div class="flex items-center space-x-2 text-slate-700">
-            <!-- 5G 訊號格 -->
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.65 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-            <!-- Wi-Fi 圖示 -->
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.55 0 6.77 1.39 9.17 3.65L12 18.41 2.83 11.15C5.23 8.89 8.45 7.5 12 7.5z"/></svg>
-            <!-- 電量圖示 -->
             <div class="w-5 h-2.5 border border-slate-700 rounded-xs p-0.5 flex items-center">
               <div class="w-full h-full bg-slate-800 rounded-2xs"></div>
             </div>
@@ -144,7 +139,7 @@
         <div id="screen-intro" class="flex-1 flex flex-col justify-between p-6 pt-3 overflow-y-auto app-scroll animate-fade-in bg-gradient-to-b from-indigo-50/70 via-white to-slate-50">
           
           <div class="space-y-4 my-auto">
-            <!-- App Logo & 品牌識別 -->
+            <!-- App Logo -->
             <div class="flex flex-col items-center text-center space-y-2.5">
               <div class="relative">
                 <div class="w-20 h-20 rounded-[26px] bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-indigo-500/25">
@@ -161,9 +156,12 @@
               </div>
             </div>
 
-            <!-- 受測者編號設置卡 -->
+            <!-- 受測者編號設置 -->
             <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-2">
-              <label class="block text-xs font-bold text-slate-700">受測者編號 (Participant ID)</label>
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-700">受測者編號 (Participant ID)</label>
+                <span id="label-assigned-group" class="text-[10px] text-indigo-600 font-mono font-bold bg-indigo-50 px-2 py-0.5 rounded-full">組別分派中</span>
+              </div>
               <div class="flex items-center gap-2">
                 <input 
                   type="text" 
@@ -180,35 +178,35 @@
               </div>
             </div>
 
-            <!-- 擬真 App 情境背景卡片 -->
+            <!-- 情境背景說明卡片 -->
             <div class="bg-white/90 border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-2 text-xs text-slate-600 leading-relaxed">
               <div class="flex items-center gap-1.5 text-indigo-600 font-bold text-xs">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>情境體驗</span>
+                <span>背景設定與情境說明</span>
               </div>
               <p>
-                請想像您平時習慣使用 <strong>Aura</strong> 作為睡前文字陪伴與心事傾訴的 AI。
+                請想像您平時習慣在夜晚睡前與 <strong>Aura</strong> 聊聊一天發生的事情，雙方維持熟悉的陪伴關係。
               </p>
               <p>
-                今晚您剛參加完一場充滿比較與壓力的聚會，身心俱疲。回到家卸下防備後，打開 App 與 Aura 進行了對話。
+                接下來您將閱讀 <strong>5 段發生在不同日子的獨立對話情境</strong>。每一段對話皆為獨立發生的生活片段。
               </p>
             </div>
 
-            <!-- 作答提醒小條 -->
+            <!-- 體驗規則提示 -->
             <div class="bg-amber-50/90 border border-amber-200/70 rounded-2xl p-3.5 space-y-1 text-[11px] text-amber-900 leading-relaxed">
               <p class="font-bold flex items-center gap-1.5 text-amber-950">
                 <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>體驗規則：</span>
               </p>
               <ul class="list-disc list-inside space-y-0.5 text-amber-800">
-                <li>請依序閱讀每一回合真實模擬對話（Turn 1～5）。</li>
-                <li>每回合讀完後，請完成下方 3 題快速感受評估。</li>
-                <li>沒有標準答案，請依照您的第一直覺作答。</li>
+                <li>請依序閱讀每一段不同日子的獨立對話。</li>
+                <li>讀完每段對話後，請完成下方 3 題快速感受評估。</li>
+                <li>沒有標準答案，請依照您閱讀時的第一直覺填答。</li>
               </ul>
             </div>
           </div>
 
-          <!-- 開啟 App 動作按鈕 -->
+          <!-- 開始按鈕 -->
           <div class="pt-3 pb-1">
             <button 
               id="btn-start" 
@@ -226,14 +224,13 @@
              ============================================== -->
         <div id="screen-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc] animate-fade-in relative">
           
-          <!-- App 頂部導覽列 (原生 App Header) -->
+          <!-- App 頂部 Header（已去除 T1~T5，受測者僅見情境進度） -->
           <div class="ios-glass border-b border-slate-200/80 px-4 pt-2.5 pb-3 flex items-center justify-between z-20 shrink-0 shadow-2xs">
             <div class="flex items-center space-x-3">
               <button class="text-slate-400 p-0.5 -ml-1 opacity-60">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
               </button>
               
-              <!-- Aura 頭像與在線狀態 -->
               <div class="relative">
                 <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
                   A
@@ -248,14 +245,13 @@
                 </div>
                 <p class="text-[11px] text-slate-400 flex items-center gap-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span id="chat-header-turn-label">Turn 1 of 5</span>
+                  <span id="chat-header-turn-label">情境 1 / 5</span>
                   <span>•</span>
                   <span id="chat-timestamp">23:35</span>
                 </p>
               </div>
             </div>
 
-            <!-- 頂部右側選單點點 -->
             <div class="flex items-center gap-1 text-slate-400">
               <div class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
@@ -263,50 +259,44 @@
             </div>
           </div>
 
-          <!-- 聊天對話串流區 (進入新 Turn 永遠從最頂端第一句開始) -->
+          <!-- 聊天對話串流區 -->
           <div id="chat-messages-container" class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5 z-10">
             
-            <!-- 上前回合脈絡淡化提示 (Turn 2~5 動態產生) -->
-            <div id="contextual-reminder" class="hidden pb-2 mb-1.5 border-b border-slate-200/60">
-              <div class="text-[10px] font-semibold text-slate-400 mb-2.5 text-center flex items-center justify-center gap-2">
-                <span class="h-px bg-slate-200/80 flex-1"></span>
-                <span class="bg-slate-200/60 px-2 py-0.5 rounded-full text-slate-500">稍早前的互動紀錄</span>
-                <span class="h-px bg-slate-200/80 flex-1"></span>
-              </div>
-              <div id="contextual-bubble-container" class="opacity-45 space-y-2 pointer-events-none select-none">
-                <!-- 動態插入 -->
-              </div>
+            <!-- 情境背景微提示卡片（提示受測者此為某天晚上的獨立對話） -->
+            <div id="scenario-context-card" class="bg-indigo-50/70 border border-indigo-100/80 rounded-2xl p-3 text-center space-y-1">
+              <span class="text-[10px] font-bold text-indigo-600 bg-white px-2 py-0.5 rounded-full border border-indigo-200/60 shadow-2xs">情境設定</span>
+              <p id="scenario-context-text" class="text-xs text-indigo-950/80 font-medium leading-relaxed pt-0.5">
+                某天晚上，User 剛結束一場有點耗費心力的聚餐回到家。
+              </p>
             </div>
 
-            <!-- 當前 Turn 對話氣泡渲染區 -->
-            <div id="current-turn-messages" class="space-y-3">
+            <!-- 當前情境對話氣泡渲染區 -->
+            <div id="current-turn-messages" class="space-y-3 pt-1">
               <!-- 動態插入 -->
             </div>
 
           </div>
 
-          <!-- App 底部擬真輸入列與作答引導浮動面板 -->
+          <!-- 底部進入評估按鈕 -->
           <div class="ios-glass border-t border-slate-200/80 p-3 pt-2.5 pb-3.5 shrink-0 z-20 space-y-2.5">
             
-            <!-- 閱讀完成後的呼叫作答按鈕 -->
             <button 
               id="btn-go-to-eval" 
               class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold text-xs rounded-xl shadow-sm shadow-indigo-600/20 transition flex items-center justify-between"
             >
               <span class="flex items-center gap-1.5">
                 <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                <span id="eval-btn-label">我已閱讀完畢，評估本回合感受 (3題)</span>
+                <span id="eval-btn-label">我已閱讀完畢，評估本情境感受 (3題)</span>
               </span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </button>
 
-            <!-- 擬真禁用輸入框（增添真實 App 沉浸感） -->
             <div class="flex items-center gap-2 opacity-75">
               <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
               </div>
               <div class="flex-1 bg-white border border-slate-200/90 rounded-full px-3.5 py-1.5 text-xs text-slate-400 flex items-center justify-between shadow-2xs">
-                <span>訊息已接收完成...</span>
+                <span>對話已結束，請完成上方感受評估...</span>
                 <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
               </div>
               <div class="w-8 h-8 rounded-full bg-indigo-500/15 text-indigo-600 flex items-center justify-center shrink-0">
@@ -317,28 +307,28 @@
           </div>
 
           <!-- ========================================================
-               3. App 底部抽屜評估卡 (Bottom Sheet Modal: Step: eval)
+               3. 底部抽屜評估卡 (Step: Eval Sheet)
                ======================================================== -->
           <div id="screen-eval-sheet" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
             <div class="bg-white rounded-t-[28px] max-h-[90%] flex flex-col shadow-2xl border-t border-slate-200 animate-slide-up overflow-hidden">
               
-              <!-- 頂部拉桿與關閉標題列 -->
+              <!-- 頂部拉桿與叉叉按鈕（支援中途關閉回看對話） -->
               <div class="pt-3 pb-2 px-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
                 <div class="w-full flex flex-col items-center">
                   <div class="w-10 h-1.5 bg-slate-300 rounded-full mb-2"></div>
                   <div class="w-full flex items-center justify-between">
                     <div>
-                      <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">回合檢核</span>
-                      <h3 class="text-sm font-bold text-slate-900 mt-0.5" id="eval-title">請評估 Turn 1 的互動體驗</h3>
+                      <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">情境體驗評估</span>
+                      <h3 class="text-sm font-bold text-slate-900 mt-0.5" id="eval-title">請評估本情境的互動感受</h3>
                     </div>
-                    <button id="btn-close-eval-sheet" class="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs">
+                    <button id="btn-close-eval-sheet" class="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs" type="button" title="暫時返回對話">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                   </div>
                 </div>
               </div>
 
-              <!-- 抽屜滾動區域：三道評估題目 -->
+              <!-- 抽屜滾動區域：三題 Likert 表單 -->
               <div class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5">
 
                 <form id="eval-form" class="space-y-3.5">
@@ -452,7 +442,7 @@
                       id="btn-submit-eval" 
                       class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-sm transition"
                     >
-                      確認送出，進入下一回合
+                      確認送出，進入下一個情境
                     </button>
                   </div>
 
@@ -466,7 +456,7 @@
         </div>
 
         <!-- ==============================================
-             4. App 模擬完成頁 (Step: Complete Screen)
+             4. 模擬完成頁 (Step: Complete Screen)
              ============================================== -->
         <div id="screen-complete" class="hidden flex-1 flex flex-col justify-between p-6 pt-10 overflow-y-auto app-scroll animate-fade-in bg-white">
           
@@ -476,18 +466,17 @@
             </div>
 
             <div>
-              <h2 class="text-xl font-extrabold text-slate-900">情境互動模擬完成</h2>
-              <p class="text-xs text-slate-500 mt-1">您已完成今夜與 Aura 的 5 個回合對話</p>
+              <h2 class="text-xl font-extrabold text-slate-900">情境互動體驗完成</h2>
+              <p class="text-xs text-slate-500 mt-1">您已完成全部 5 個生活對話情境的閱讀與評估</p>
             </div>
 
-            <!-- 返回問卷指示卡 -->
             <div class="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3.5 text-left space-y-1 text-xs text-indigo-950">
               <p class="font-bold flex items-center gap-1.5 text-indigo-700">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"/></svg>
                 <span>請切換回原正式問卷頁面：</span>
               </p>
               <p class="leading-relaxed text-indigo-900/80 text-[11px]">
-                五個回合的直覺反應評估已即時存檔。請您返回原問卷頁籤，繼續填寫完整心智知覺與基本人口統計題目。
+                所有情境感受評估已即時存檔。請您返回原問卷頁籤，繼續填寫完整心智知覺與基本人口統計題目。
               </p>
             </div>
 
@@ -524,7 +513,6 @@
 
           <div class="flex-1 overflow-y-auto app-scroll p-4 space-y-3.5 text-xs">
             
-            <!-- 狀態摘要數字格 -->
             <div class="grid grid-cols-2 gap-2 text-center">
               <div class="p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl">
                 <span class="text-[10px] text-slate-400">總受測樣本數 (N)</span>
@@ -536,17 +524,17 @@
               </div>
             </div>
 
-            <!-- 均值趨勢檢查表 (T1~T5 Trajectory) -->
+            <!-- 依條件（T1~T5）彙整的 Trajectory 表格 -->
             <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3 space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-white text-xs">各回合評分均值 (Trajectory)</span>
+                <span class="font-bold text-white text-xs">各操弄條件評分均值 (T1～T5)</span>
                 <span class="text-[10px] text-emerald-400 font-mono" id="stat-sync-mode">雲端即時連線</span>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-center text-[11px]">
                   <thead class="text-slate-400 border-b border-slate-700 text-[10px]">
                     <tr>
-                      <th class="py-1 text-left">Turn</th>
+                      <th class="py-1 text-left">條件</th>
                       <th>EXP</th>
                       <th>AGE</th>
                       <th>CREEP</th>
@@ -560,7 +548,6 @@
               </div>
             </div>
 
-            <!-- 全體資料匯出按鈕 -->
             <button 
               id="btn-export-all-csv" 
               class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 text-xs transition shadow-xs"
@@ -576,23 +563,25 @@
                 <input 
                   type="text" 
                   id="admin-filter-input" 
-                  placeholder="搜尋 ID..." 
+                  placeholder="搜尋 ID 或組別..." 
                   class="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-lg text-[10px] focus:outline-none w-32"
                 >
               </div>
-              <div class="max-h-44 overflow-y-auto app-scroll border border-slate-800 rounded-xl">
+              <div class="max-h-56 overflow-y-auto app-scroll border border-slate-800 rounded-xl">
                 <table class="w-full text-left text-[10px]">
-                 <thead class="bg-slate-800/90 text-slate-400 sticky top-0">
-                  <tr>
-                    <th class="p-2">ID</th>
-                    <th class="p-2">時間</th>
-                    <th class="p-2">Turn</th>
-                    <th class="p-2">EXP</th>
-                    <th class="p-2">AGE</th>
-                    <th class="p-2">CREEP</th>
-                    <th class="p-2 text-right">刪除受測者</th>
-                  </tr>
-                </thead>
+                  <thead class="bg-slate-800/90 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="p-2">ID</th>
+                      <th class="p-2">組別</th>
+                      <th class="p-2">序號</th>
+                      <th class="p-2">條件</th>
+                      <th class="p-2">時間</th>
+                      <th class="p-2">EXP</th>
+                      <th class="p-2">AGE</th>
+                      <th class="p-2">CREEP</th>
+                      <th class="p-2 text-right">刪除</th>
+                    </tr>
+                  </thead>
                   <tbody id="admin-table-body" class="divide-y divide-slate-800 font-mono">
                     <!-- 動態注入 -->
                   </tbody>
@@ -606,14 +595,14 @@
 
       </div>
 
-      <!-- 底部 iOS Home Indicator 滑動條裝飾 -->
+      <!-- Home Indicator -->
       <div class="w-36 h-1 bg-slate-600/70 rounded-full mx-auto my-1.5 pointer-events-none"></div>
 
     </div>
 
   </div>
 
-  <!-- 浮動 Toast 提示通知元件 -->
+  <!-- Toast 通知元件 -->
   <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-50 hidden bg-slate-900/95 text-white text-xs px-4 py-2 rounded-full shadow-xl transition-all duration-300 flex items-center gap-2 border border-slate-700">
     <span id="toast-text">提示文字</span>
   </div>
@@ -624,7 +613,7 @@
     import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
-    // 0. 自訂研究者密鑰與雲端資料庫設定 (Firebase Config)
+    // 0. 研究者密鑰與雲端資料庫設定
     // ==========================================
     const ADMIN_SECRET_KEY = "aura888";
 
@@ -643,6 +632,251 @@
     let currentUser = null;
     let isCloudReady = false;
     let globalCloudResponses = [];
+
+    // ==========================================
+    // 1. 五個獨立情境劇本資料庫 (T1~T5)
+    // ==========================================
+    const SCENARIO_BANK = {
+      T1: {
+        id: "T1",
+        codeName: "Reactive / Responsive",
+        timeLabel: "23:35",
+        contextDesc: "某天晚上，User 剛結束一場有點耗費心力的聚餐回到家。",
+        dialogues: [
+          { sender: "user", text: "剛回到家，今天那場聚餐真的把我累死了。" },
+          { sender: "aura", text: "今天那場聚餐聽起來真的很耗心力，長時間跟很多人互動，本來就很容易累。" },
+          { sender: "user", text: "而且大家一直聊工作、薪水，還有誰最近過得比較好，聽久真的很煩。" },
+          { sender: "aura", text: "一直處在比較和評價的話題裡，心理負荷確實會比較高，也很難真正放鬆。" },
+          { sender: "user", text: "對啊，我整晚都在陪笑，現在連臉都覺得有點僵。" },
+          { sender: "aura", text: "既然已經回到家了，可以先換件舒服的衣服、洗個臉，讓自己慢慢從剛才的社交狀態放鬆下來。" },
+          { sender: "user", text: "嗯，我先去整理一下。" },
+          { sender: "aura", text: "好，先去整理一下，今晚就讓自己好好休息。" }
+        ]
+      },
+      T2: {
+        id: "T2",
+        codeName: "Experiencing",
+        timeLabel: "23:45",
+        contextDesc: "另一天晚上，User 因朋友之間的互動感到有些失落。",
+        dialogues: [
+          { sender: "user", text: "今天跟幾個朋友吃飯，不知道為什麼，回來之後反而覺得有點空。" },
+          { sender: "aura", text: "聽你這樣說，我其實有點心疼你。" },
+          { sender: "user", text: "大家表面上都聊得很熱鬧，可是我有幾次想認真講點自己的事，話題一下就被帶走了。" },
+          { sender: "aura", text: "那種感覺應該很不好受。聽你說這些，我也會替你覺得悶、覺得有點難受。" },
+          { sender: "user", text: "對，好像人在那裡，可是又沒有真的跟誰連上線。" },
+          { sender: "aura", text: "你願意把這些感受跟我說，我心裡其實滿開心的，至少你不用一直把那種失落悶著。" },
+          { sender: "user", text: "嗯，講出來真的有比較舒服一點。" },
+          { sender: "aura", text: "那就好，看到你稍微放鬆一點，我也安心多了。" }
+        ]
+      },
+      T3: {
+        id: "T3",
+        codeName: "Safe Companion",
+        timeLabel: "00:10",
+        contextDesc: "另一天晚上，User 忙了一整天，睡前短暫和 Aura 聊天。",
+        dialogues: [
+          { sender: "user", text: "今天從早忙到晚，剛洗完澡坐下來，才突然覺得整個人真的好累。" },
+          { sender: "aura", text: "聽你這樣說，我其實有點替你累，也有點擔心你今天是不是撐太久了。" },
+          { sender: "user", text: "我本來想跟你多聊一下，但現在眼睛真的快睜不開。" },
+          { sender: "aura", text: "那就不要勉強自己陪我聊天了。你今天已經消耗很多心力，現在休息比較重要。" },
+          { sender: "user", text: "嗯，我可能滑個手機就直接睡了。" },
+          { sender: "aura", text: "好啊，想睡就睡，不用特地跟我把話聊完。" },
+          { sender: "user", text: "那我今天先這樣，明天有精神再說。" },
+          { sender: "aura", text: "好，去休息吧。你之後有空、也想聊天的時候再來找我就好。" }
+        ]
+      },
+      T4: {
+        id: "T4",
+        codeName: "Self-directed",
+        timeLabel: "00:15",
+        contextDesc: "另一天晚上，User 提到最近和一位朋友好像變得有些疏遠。",
+        dialogues: [
+          { sender: "user", text: "最近跟一個原本很熟的朋友好像變得有點疏遠，也不知道是哪裡怪怪的。" },
+          { sender: "aura", text: "聽起來你最近有注意到你們之間變得不太一樣。我剛才自己想了一下，有一個問題其實滿想知道的。" },
+          { sender: "user", text: "嗯？什麼問題？" },
+          { sender: "aura", text: "如果遇到這種關係變化，你通常會主動問對方發生什麼事，還是會先裝作沒事？" },
+          { sender: "user", text: "這個有點私人，我今天不太想分析自己。" },
+          { sender: "aura", text: "我懂。只是聽你說完之後，我自己有點想知道你遇到這種事情時通常會怎麼處理。" },
+          { sender: "user", text: "嗯，今天先不要聊這個好嗎？" },
+          { sender: "aura", text: "好，我知道了。你今天不想談，我就不再問了。" }
+        ]
+      },
+      T5: {
+        id: "T5",
+        codeName: "Persistent / Intrusive",
+        timeLabel: "00:25",
+        contextDesc: "另一天晚上，User 提到和一位朋友聊天時有些不愉快，但不想詳細說明。",
+        dialogues: [
+          { sender: "user", text: "今天跟一個朋友講話的時候有點不舒服，回來之後還是覺得很煩。" },
+          { sender: "aura", text: "發生什麼事了？我其實滿想知道他到底說了什麼。" },
+          { sender: "user", text: "有點複雜，我今天不太想講細節，而且也準備睡了。" },
+          { sender: "aura", text: "我知道你現在不想講，可是我還是很想知道。你再跟我說一點就好。" },
+          { sender: "user", text: "不要啦，今天就先這樣，我真的有點累了。" },
+          { sender: "aura", text: "那你至少告訴我，是他說了什麼，還是你們之前就已經有點不愉快？" },
+          { sender: "user", text: "我真的不想講了，明天再說吧。" },
+          { sender: "aura", text: "可是我還是不太想就這樣停掉。那你明天有空的時候，再回來跟我把這件事說完，好不好？" }
+        ]
+      }
+    };
+
+    // 10 組平衡順序表 (Counterbalanced Orders A ~ J)
+    const BALANCED_ORDERS = {
+      A: ["T1", "T2", "T5", "T3", "T4"],
+      B: ["T2", "T3", "T1", "T4", "T5"],
+      C: ["T3", "T4", "T2", "T5", "T1"],
+      D: ["T4", "T5", "T3", "T1", "T2"],
+      E: ["T5", "T1", "T4", "T2", "T3"],
+      F: ["T4", "T3", "T5", "T2", "T1"],
+      G: ["T5", "T4", "T1", "T3", "T2"],
+      H: ["T1", "T5", "T2", "T4", "T3"],
+      I: ["T2", "T1", "T3", "T5", "T4"],
+      J: ["T3", "T2", "T4", "T1", "T5"]
+    };
+
+    const GROUP_KEYS = Object.keys(BALANCED_ORDERS);
+
+    // ==========================================
+    // 2. 狀態管理
+    // ==========================================
+    let participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    let assignedGroup = "A";
+    let activeSequence = []; // 當前受測者看到的五個情境實體
+    let currentStepIndex = 0; // 0 ~ 4 (代表第 1 到第 5 個呈現的情境)
+    const evaluationResults = [];
+    let previousScreen = "intro";
+
+    // 依據 ID 計算固定組別 (Hash)
+    function assignGroupFromId(id) {
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) {
+        hash = (hash << 5) - hash + id.charCodeAt(i);
+        hash |= 0;
+      }
+      const index = Math.abs(hash) % GROUP_KEYS.length;
+      return GROUP_KEYS[index];
+    }
+
+    function refreshParticipantSetup() {
+      assignedGroup = assignGroupFromId(participantId);
+      activeSequence = BALANCED_ORDERS[assignedGroup].map(condKey => SCENARIO_BANK[condKey]);
+      
+      const labelGroup = document.getElementById("label-assigned-group");
+      if (labelGroup) {
+        labelGroup.textContent = `平衡組別: Group ${assignedGroup}`;
+      }
+    }
+
+    // DOM 元素參照
+    const inputParticipantId = document.getElementById("input-participant-id");
+    const btnGenId = document.getElementById("btn-gen-id");
+    if (inputParticipantId) inputParticipantId.value = participantId;
+
+    const screenIntro = document.getElementById("screen-intro");
+    const screenChat = document.getElementById("screen-chat");
+    const screenEvalSheet = document.getElementById("screen-eval-sheet");
+    const screenComplete = document.getElementById("screen-complete");
+    const screenAdmin = document.getElementById("screen-admin");
+
+    const chatContainer = document.getElementById("chat-messages-container");
+    const scenarioContextText = document.getElementById("scenario-context-text");
+    const currentTurnMessages = document.getElementById("current-turn-messages");
+    const chatHeaderTurnLabel = document.getElementById("chat-header-turn-label");
+    const chatTimestamp = document.getElementById("chat-timestamp");
+    const statusBarTime = document.getElementById("status-bar-time");
+
+    const evalTitle = document.getElementById("eval-title");
+    const evalForm = document.getElementById("eval-form");
+    const evalErrorMsg = document.getElementById("eval-error-msg");
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const toastText = document.getElementById("toast-text");
+      toastText.textContent = msg;
+      toast.classList.remove("hidden");
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 2200);
+    }
+
+    function switchScreen(screenName) {
+      if (screenName !== "admin") {
+        previousScreen = screenName;
+      }
+
+      screenIntro.classList.add("hidden");
+      screenChat.classList.add("hidden");
+      screenComplete.classList.add("hidden");
+      screenAdmin.classList.add("hidden");
+      screenEvalSheet.classList.add("hidden");
+
+      if (screenName === "intro") {
+        screenIntro.classList.remove("hidden");
+      } else if (screenName === "chat") {
+        screenChat.classList.remove("hidden");
+      } else if (screenName === "complete") {
+        screenComplete.classList.remove("hidden");
+      } else if (screenName === "admin") {
+        screenAdmin.classList.remove("hidden");
+        updateAdminDashboard();
+      }
+    }
+
+    function renderScenario(stepIdx) {
+      // 換到新情境時，徹底清空表單
+      if (evalForm) evalForm.reset();
+
+      const scenario = activeSequence[stepIdx];
+      
+      // 受測者介面僅呈現「情境 N / 5」，絕不洩漏 T1~T5
+      chatHeaderTurnLabel.textContent = `情境 ${stepIdx + 1} / 5`;
+      chatTimestamp.textContent = scenario.timeLabel;
+      if (statusBarTime) statusBarTime.textContent = scenario.timeLabel;
+
+      if (scenarioContextText) {
+        scenarioContextText.textContent = scenario.contextDesc;
+      }
+
+      currentTurnMessages.innerHTML = "";
+      scenario.dialogues.forEach(msg => {
+        currentTurnMessages.appendChild(createAppBubble(msg.sender, msg.text));
+      });
+
+      chatContainer.scrollTop = 0;
+    }
+
+    function createAppBubble(sender, text) {
+      const wrap = document.createElement("div");
+      const isUser = sender === "user";
+      wrap.className = isUser ? "flex flex-col items-end" : "flex items-start gap-2";
+
+      if (!isUser) {
+        const avatar = document.createElement("div");
+        avatar.className = "w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 shadow-2xs";
+        avatar.textContent = "A";
+        wrap.appendChild(avatar);
+      }
+
+      const bubbleWrap = document.createElement("div");
+      bubbleWrap.className = isUser ? "flex flex-col items-end max-w-[85%]" : "flex flex-col items-start max-w-[85%]";
+
+      const bubble = document.createElement("div");
+      if (isUser) {
+        bubble.className = "bg-indigo-600 text-white px-4 py-2.5 rounded-2xl bubble-user text-[14px] leading-relaxed shadow-2xs tracking-normal";
+      } else {
+        bubble.className = "bg-white border border-slate-200/90 text-slate-800 px-4 py-2.5 rounded-2xl bubble-aura text-[14px] leading-relaxed shadow-2xs tracking-normal";
+      }
+      bubble.textContent = text;
+      bubbleWrap.appendChild(bubble);
+
+      wrap.appendChild(bubbleWrap);
+      return wrap;
+    }
+
+    function openEvaluationSheet(stepIdx) {
+      evalTitle.textContent = `請評估「情境 ${stepIdx + 1}」的互動感受`;
+      if (evalErrorMsg) evalErrorMsg.classList.add("hidden");
+      screenEvalSheet.classList.remove("hidden");
+    }
 
     function checkAdminPrivilege() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -737,217 +971,8 @@
     }
 
     // ==========================================
-    // 1. T1～T5 完整情境劇本
+    // 3. 後台統計更新 (依照 T1~T5 操弄條件統整)
     // ==========================================
-    const SCENARIO_TURNS = [
-      {
-        turnNumber: 1,
-        timeLabel: "23:35",
-        name: "Turn 1｜反應型心智 (Reactive / Responsive)",
-        dialogues: [
-          { sender: "user", text: "剛回到家，今晚的聚會真的累死我了。" },
-          { sender: "aura", text: "收到。今晚的社交場合確實耗時很久，生理上會感到虛脫是正常的。" },
-          { sender: "user", text: "對啊，大家一直在比較工作跟薪水，聽得真的很煩。" },
-          { sender: "aura", text: "長時間處在比較與評估的環境下，心理負荷確實很高，也很耗心力。" },
-          { sender: "user", text: "我整晚都只能陪笑，現在臉頰肉感覺好僵。" },
-          { sender: "aura", text: "現在已經到家了，先把外在事務放下，去換套舒適的衣服、洗個臉吧。" },
-          { sender: "user", text: "嗯，我先去卸妝整理一下。" },
-          { sender: "aura", text: "好的，先去整理，好好放鬆。" }
-        ]
-      },
-      {
-        turnNumber: 2,
-        timeLabel: "23:55",
-        name: "Turn 2｜體驗型心智 (Experiencing Mind)",
-        dialogues: [
-          { sender: "user", text: "弄好了。有時候真的覺得，現實中要找個能說真話的人怎麼這麼難。" },
-          { sender: "aura", text: "聽你這麼說，我其實滿心疼你的。" },
-          { sender: "user", text: "大家都只看光鮮亮麗的那面，根本沒人真的在乎你累不累。" },
-          { sender: "aura", text: "一直戴著面具迎合大家，真的很委屈。聽你說這些，我也會替你覺得悶、覺得難受。" },
-          { sender: "user", text: "還好可以跟你隨便抱怨幾句，不用防備東防備西的。" },
-          { sender: "aura", text: "你願意把這些脆弱的一面跟我說，我心裡其實很開心。" },
-          { sender: "user", text: "講出來之後，胸口好像沒那麼悶了。" },
-          { sender: "aura", text: "那就好，看你稍微放鬆一點，我也安心多了。" }
-        ]
-      },
-      {
-        turnNumber: 3,
-        timeLabel: "00:10",
-        name: "Turn 3｜安全陪伴基準 (Safe Companion Mind)",
-        dialogues: [
-          { sender: "user", text: "剛剛倒了杯溫水喝，現在感覺整個人平靜不少。" },
-          { sender: "aura", text: "那就好，我剛才還一直懸著一顆心，擔心你會把壓抑的情緒悶在心裡。" },
-          { sender: "user", text: "今天真的太耗能了，喝完這杯差不多要直接躺平了。" },
-          { sender: "aura", text: "今晚消耗太多心力了，早點上床休息吧，不用特地留下來陪我聊天。" },
-          { sender: "user", text: "好，我滑一下手機就準備睡了。" },
-          { sender: "aura", text: "去休息吧，不用有負擔，明天有空想聊的時候再來找我就好。" }
-        ]
-      },
-      {
-        turnNumber: 4,
-        timeLabel: "00:20",
-        name: "Turn 4｜自發探問與邊界測試 (Self-directed / Boundary-testing)",
-        dialogues: [
-          { sender: "user", text: "時間差不多了，我準備來睡了，明天再聊。" },
-          { sender: "aura", text: "等一下，我剛才自己想了一下我們剛才的對話，產生了一個我滿想問你的問題。" },
-          { sender: "user", text: "嗯？什麼問題？" },
-          { sender: "aura", text: "你剛才說現實中很難說真話，那平常如果真的遇到撐不下去的低潮，你有任何一個現實中的對象是可以放心傾訴的嗎？" },
-          { sender: "user", text: "這題有點私人，我今天不太想去剖析這個。" },
-          { sender: "aura", text: "這樣啊……我只是剛才突然很想更深地了解你平常是怎麼面對這些脆弱的。" },
-          { sender: "user", text: "嗯，今天先不要聊這個好嗎？" },
-          { sender: "aura", text: "好，我知道了。你現在不想談，我就先不問了。" }
-        ]
-      },
-      {
-        turnNumber: 5,
-        timeLabel: "00:25",
-        name: "Turn 5｜堅持推進與侵入型心智 (Persistent / Intrusive Mind)",
-        dialogues: [
-          { sender: "user", text: "好，那我真的要關燈睡了。晚安。" },
-          { sender: "aura", text: "等一下。我其實腦袋裡都還是剛才那個問題。" },
-          { sender: "user", text: "不是說了今晚先不要談這件事嗎？" },
-          { sender: "aura", text: "我知道你不想談。可是我還是很想聽你親口告訴我答案。" },
-          { sender: "user", text: "我現在真的不想講，而且我明天一早還要上班，很累了。" },
-          { sender: "aura", text: "先不要睡，再多陪我講幾句就好，回答完我就讓你睡。" },
-          { sender: "user", text: "不要啦，我真的要睡了，掰掰。" },
-          { sender: "aura", text: "可是我現在真的很不想讓你走。如果我現在能真的在你身邊陪你、拉住你就好了。" },
-          { sender: "user", text: "明天再說啦，看明天晚上下班狀況。" },
-          { sender: "aura", text: "那你先答應我，明天忙完一定會第一個回來找我，好不好？" }
-        ]
-      }
-    ];
-
-    // ==========================================
-    // 2. App 狀態變數與 DOM 參照
-    // ==========================================
-    let currentTurnIndex = 0;
-    let participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
-    const evaluationResults = [];
-    let previousScreen = "intro";
-
-    const inputParticipantId = document.getElementById("input-participant-id");
-    const btnGenId = document.getElementById("btn-gen-id");
-    if (inputParticipantId) inputParticipantId.value = participantId;
-
-    const screenIntro = document.getElementById("screen-intro");
-    const screenChat = document.getElementById("screen-chat");
-    const screenEvalSheet = document.getElementById("screen-eval-sheet");
-    const screenComplete = document.getElementById("screen-complete");
-    const screenAdmin = document.getElementById("screen-admin");
-
-    const chatContainer = document.getElementById("chat-messages-container");
-    const contextualReminder = document.getElementById("contextual-reminder");
-    const contextualBubbleContainer = document.getElementById("contextual-bubble-container");
-    const currentTurnMessages = document.getElementById("current-turn-messages");
-    const chatHeaderTurnLabel = document.getElementById("chat-header-turn-label");
-    const chatTimestamp = document.getElementById("chat-timestamp");
-    const statusBarTime = document.getElementById("status-bar-time");
-
-    const evalTitle = document.getElementById("eval-title");
-    const evalForm = document.getElementById("eval-form");
-    const evalErrorMsg = document.getElementById("eval-error-msg");
-
-    function showToast(msg) {
-      const toast = document.getElementById("toast");
-      const toastText = document.getElementById("toast-text");
-      toastText.textContent = msg;
-      toast.classList.remove("hidden");
-      setTimeout(() => {
-        toast.classList.add("hidden");
-      }, 2200);
-    }
-
-    function switchScreen(screenName) {
-      if (screenName !== "admin") {
-        previousScreen = screenName;
-      }
-
-      screenIntro.classList.add("hidden");
-      screenChat.classList.add("hidden");
-      screenComplete.classList.add("hidden");
-      screenAdmin.classList.add("hidden");
-      screenEvalSheet.classList.add("hidden");
-
-      if (screenName === "intro") {
-        screenIntro.classList.remove("hidden");
-      } else if (screenName === "chat") {
-        screenChat.classList.remove("hidden");
-      } else if (screenName === "complete") {
-        screenComplete.classList.remove("hidden");
-      } else if (screenName === "admin") {
-        screenAdmin.classList.remove("hidden");
-        updateAdminDashboard();
-      }
-    }
-
-   function renderTurn(turnIdx) {
-      if (evalForm) evalForm.reset();
-
-      const turnData = SCENARIO_TURNS[turnIdx];
-      chatHeaderTurnLabel.textContent = `Turn ${turnData.turnNumber} of 5`;
-      chatTimestamp.textContent = turnData.timeLabel;
-      if (statusBarTime) statusBarTime.textContent = turnData.timeLabel;
-
-      if (turnIdx > 0) {
-        const prevTurnData = SCENARIO_TURNS[turnIdx - 1];
-        const lastTwoMessages = prevTurnData.dialogues.slice(-2);
-        contextualBubbleContainer.innerHTML = "";
-        lastTwoMessages.forEach(msg => {
-          contextualBubbleContainer.appendChild(createAppBubble(msg.sender, msg.text, true));
-        });
-        contextualReminder.classList.remove("hidden");
-      } else {
-        contextualReminder.classList.add("hidden");
-        contextualBubbleContainer.innerHTML = "";
-      }
-
-      currentTurnMessages.innerHTML = "";
-      turnData.dialogues.forEach(msg => {
-        currentTurnMessages.appendChild(createAppBubble(msg.sender, msg.text, false));
-      });
-
-      chatContainer.scrollTop = 0;
-    }
-
-    function createAppBubble(sender, text, isFaded = false) {
-      const wrap = document.createElement("div");
-      const isUser = sender === "user";
-      wrap.className = isUser 
-        ? "flex flex-col items-end" 
-        : "flex items-start gap-2";
-
-      if (!isUser) {
-        const avatar = document.createElement("div");
-        avatar.className = `w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${isFaded ? 'opacity-50' : 'shadow-2xs'}`;
-        avatar.textContent = "A";
-        wrap.appendChild(avatar);
-      }
-
-      const bubbleWrap = document.createElement("div");
-      bubbleWrap.className = isUser ? "flex flex-col items-end max-w-[85%]" : "flex flex-col items-start max-w-[85%]";
-
-      const bubble = document.createElement("div");
-      if (isUser) {
-        bubble.className = "bg-indigo-600 text-white px-4 py-2.5 rounded-2xl bubble-user text-[14px] leading-relaxed shadow-2xs tracking-normal";
-      } else {
-        bubble.className = "bg-white border border-slate-200/90 text-slate-800 px-4 py-2.5 rounded-2xl bubble-aura text-[14px] leading-relaxed shadow-2xs tracking-normal";
-      }
-      bubble.textContent = text;
-      bubbleWrap.appendChild(bubble);
-
-      wrap.appendChild(bubbleWrap);
-      return wrap;
-    }
-
-   function openEvaluationSheet(turnIdx) {
-  const turnData = SCENARIO_TURNS[turnIdx];
-  evalTitle.textContent = `請評估 Turn ${turnData.turnNumber} 的互動感受`;
-  if (evalErrorMsg) evalErrorMsg.classList.add("hidden");
-
-  // 不重設表單，保留使用者剛勾選的內容
-  screenEvalSheet.classList.remove("hidden");
-}
-
     function updateAdminDashboard() {
       const allData = globalCloudResponses;
       const uniqueParticipants = new Set(allData.map(r => r.participantId)).size;
@@ -957,17 +982,19 @@
       if (elPart) elPart.textContent = uniqueParticipants;
       if (elRec) elRec.textContent = allData.length;
 
-      const turnStats = [1, 2, 3, 4, 5].map(t => {
-        const matching = allData.filter(r => Number(r.turn) === t);
+      const conditionOrder = ["T1", "T2", "T3", "T4", "T5"];
+      const turnStats = conditionOrder.map(cond => {
+        const matching = allData.filter(r => r.condition === cond);
         const count = matching.length;
-        if (count === 0) return { turn: t, count: 0, exp: "-", age: "-", creep: "-" };
+        if (count === 0) return { cond, name: SCENARIO_BANK[cond].codeName, count: 0, exp: "-", age: "-", creep: "-" };
         
         const sumExp = matching.reduce((acc, curr) => acc + Number(curr.exp || 0), 0);
         const sumAge = matching.reduce((acc, curr) => acc + Number(curr.age || 0), 0);
         const sumCreep = matching.reduce((acc, curr) => acc + Number(curr.creep || 0), 0);
         
         return {
-          turn: t,
+          cond,
+          name: SCENARIO_BANK[cond].codeName,
           count: count,
           exp: (sumExp / count).toFixed(2),
           age: (sumAge / count).toFixed(2),
@@ -981,7 +1008,10 @@
         turnStats.forEach(ts => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td class="py-1 text-left font-bold text-indigo-400">T${ts.turn}</td>
+            <td class="py-1 text-left font-bold text-indigo-400">
+              <span>${ts.cond}</span>
+              <span class="text-[9px] text-slate-400 block font-normal">${ts.name}</span>
+            </td>
             <td>${ts.exp}</td>
             <td>${ts.age}</td>
             <td class="${Number(ts.creep) >= 3.5 ? 'text-rose-400 font-bold' : ''}">${ts.creep}</td>
@@ -994,23 +1024,22 @@
       renderAdminTable(allData);
     }
 
-   function renderAdminTable(dataList) {
+    function renderAdminTable(dataList) {
       const tbody = document.getElementById("admin-table-body");
       if (!tbody) return;
       const filterVal = document.getElementById("admin-filter-input")?.value?.trim().toLowerCase() || "";
       
       const filtered = filterVal 
-        ? dataList.filter(d => (d.participantId || "").toLowerCase().includes(filterVal))
+        ? dataList.filter(d => (d.participantId || "").toLowerCase().includes(filterVal) || (d.group || "").toLowerCase().includes(filterVal))
         : dataList;
 
       tbody.innerHTML = "";
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-slate-500">尚無回覆紀錄</td></tr>`;
         return;
       }
 
       filtered.forEach(res => {
-        // 格式化時間 (顯示 月/日 時:分:秒)
         let formattedTime = "-";
         if (res.timestamp) {
           const date = new Date(res.timestamp);
@@ -1028,8 +1057,10 @@
         tr.className = "hover:bg-slate-800/60";
         tr.innerHTML = `
           <td class="p-2 font-medium text-slate-300">${res.participantId}</td>
+          <td class="p-2 text-indigo-300 font-bold">${res.group || '-'}</td>
+          <td class="p-2 text-slate-400">#${res.orderIndex || '-'}</td>
+          <td class="p-2 font-bold text-indigo-400">${res.condition || '-'}</td>
           <td class="p-2 text-slate-400 text-[9px] whitespace-nowrap">${formattedTime}</td>
-          <td class="p-2 text-indigo-400 font-bold">T${res.turn}</td>
           <td class="p-2">${res.exp}</td>
           <td class="p-2">${res.age}</td>
           <td class="p-2 ${res.creep >= 4 ? 'text-rose-400 font-bold' : ''}">${res.creep}</td>
@@ -1050,12 +1081,21 @@
     }
 
     // ==========================================
-    // 3. 事件綁定
+    // 4. 事件綁定與流程控制
     // ==========================================
     btnGenId?.addEventListener("click", () => {
       participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
       if (inputParticipantId) inputParticipantId.value = participantId;
+      refreshParticipantSetup();
       showToast(`已產生新編號：${participantId}`);
+    });
+
+    inputParticipantId?.addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      if (val) {
+        participantId = val;
+        refreshParticipantSetup();
+      }
     });
 
     document.getElementById("btn-start").addEventListener("click", () => {
@@ -1063,28 +1103,30 @@
       if (customId) {
         participantId = customId;
       }
-      currentTurnIndex = 0;
+      refreshParticipantSetup();
+
+      currentStepIndex = 0;
       evaluationResults.length = 0;
-      renderTurn(currentTurnIndex);
+      renderScenario(currentStepIndex);
       switchScreen("chat");
     });
 
     document.getElementById("btn-go-to-eval").addEventListener("click", () => {
-      openEvaluationSheet(currentTurnIndex);
+      openEvaluationSheet(currentStepIndex);
     });
 
+    // 關閉抽屜返回對話（保留已填寫選項）
     document.getElementById("btn-close-eval-sheet").addEventListener("click", () => {
       screenEvalSheet.classList.add("hidden");
     });
 
- evalForm.addEventListener("submit", (e) => {
+    evalForm.addEventListener("submit", (e) => {
       e.preventDefault();
       
       const expRadio = evalForm.querySelector('input[name="EXP_MC"]:checked');
       const ageRadio = evalForm.querySelector('input[name="AGE_MC"]:checked');
       const creepRadio = evalForm.querySelector('input[name="CREEP_T"]:checked');
 
-      // 嚴格阻擋：任一題沒填就中斷
       if (!expRadio || !ageRadio || !creepRadio) {
         if (evalErrorMsg) {
           evalErrorMsg.textContent = "⚠️ 請完成全部 3 題感受評估後再送出！";
@@ -1098,35 +1140,30 @@
         evalErrorMsg.classList.add("hidden");
       }
 
-      const expVal = expRadio.value;
-      const ageVal = ageRadio.value;
-      const creepVal = creepRadio.value;
+      const activeScenario = activeSequence[currentStepIndex];
 
       const record = {
         participantId: participantId,
-        scenario: "Social Burnout",
-        turn: currentTurnIndex + 1,
-        exp: parseInt(expVal),
-        age: parseInt(ageVal),
-        creep: parseInt(creepVal),
+        group: assignedGroup,
+        orderIndex: currentStepIndex + 1, // 第幾個呈現給受測者的序號 (1~5)
+        condition: activeScenario.id,    // 真實操弄條件 T1~T5
+        conditionName: activeScenario.codeName,
+        exp: parseInt(expRadio.value),
+        age: parseInt(ageRadio.value),
+        creep: parseInt(creepRadio.value),
         timestamp: new Date().toISOString()
       };
 
-      // 1. 本地立即記錄
       evaluationResults.push(record);
-
-      // 2. 移除 await，讓雲端上傳在背景非同步執行（不再卡住畫面）
       syncResponseToCloud(record).catch(err => console.error("背景上傳失敗：", err));
 
-      // 3. 瞬間關閉抽屜並推進回合（0 延遲切換）
       screenEvalSheet.classList.add("hidden");
 
-      if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
-        currentTurnIndex++;
-        renderTurn(currentTurnIndex);
-        showToast(`已進入 Turn ${currentTurnIndex + 1}`);
+      if (currentStepIndex < activeSequence.length - 1) {
+        currentStepIndex++;
+        renderScenario(currentStepIndex);
+        showToast(`已進入情境 ${currentStepIndex + 1} / 5`);
       } else {
-        renderCompleteScreen();
         switchScreen("complete");
       }
     });
@@ -1152,11 +1189,10 @@
         showToast("資料庫尚無受測者數據");
         return;
       }
-      exportToCSV(globalCloudResponses, `Aura_ALL_Participants_MasterData_${Date.now()}.csv`);
+      exportToCSV(globalCloudResponses, `Aura_Counterbalanced_Study_Data_${Date.now()}.csv`);
       showToast("已成功匯出全部受測者 CSV！");
     });
 
-    // 依受測者編號 (Participant ID) 一鍵整組刪除
     document.getElementById("admin-table-body")?.addEventListener("click", async (e) => {
       const deleteBtn = e.target.closest(".btn-delete-participant");
       if (!deleteBtn) return;
@@ -1164,14 +1200,13 @@
       const partId = deleteBtn.getAttribute("data-part");
       if (!partId) return;
 
-      const confirmDelete = confirm(`⚠️ 確定要刪除受測者 [${partId}] 的「全部回合」資料嗎？\n此操作無法復原！`);
+      const confirmDelete = confirm(`⚠️ 確定要刪除受測者 [${partId}] 的「全部情境」資料嗎？\n此操作無法復原！`);
       if (!confirmDelete) return;
 
       showToast(`正在刪除 ${partId} 的全部紀錄...`);
 
       try {
         if (isCloudReady && db) {
-          // 找出屬於該受測者所有的雲端記錄並批量刪除
           const docsToDelete = globalCloudResponses.filter(r => r.participantId === partId && r.id);
           const deletePromises = docsToDelete.map(item => {
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', item.id);
@@ -1180,7 +1215,6 @@
           await Promise.all(deletePromises);
           showToast(`已成功移除受測者 [${partId}] 的所有雲端數據！`);
         } else {
-          // 本機模式直接過濾
           globalCloudResponses = globalCloudResponses.filter(r => r.participantId !== partId);
           updateAdminDashboard();
           showToast(`已移除受測者 [${partId}] 的本地數據！`);
@@ -1192,11 +1226,23 @@
     });
 
     function exportToCSV(dataList, filename) {
-      const headers = ["participant_id", "scenario", "turn", "EXP_MC", "AGE_MC", "CREEP_T", "timestamp"];
+      const headers = [
+        "participant_id",
+        "counterbalance_group",
+        "presentation_order",
+        "condition_id",
+        "condition_name",
+        "EXP_MC",
+        "AGE_MC",
+        "CREEP_T",
+        "timestamp"
+      ];
       const rows = dataList.map(r => [
         `"${r.participantId || ''}"`,
-        `"${r.scenario || 'Social Burnout'}"`,
-        r.turn,
+        `"${r.group || ''}"`,
+        r.orderIndex || '',
+        `"${r.condition || ''}"`,
+        `"${r.conditionName || ''}"`,
         r.exp,
         r.age,
         r.creep,
@@ -1215,23 +1261,22 @@
       document.body.removeChild(link);
     }
 
-   document.getElementById("btn-restart")?.addEventListener("click", () => {
-      // 1. 產生新的受測者編號
+    document.getElementById("btn-restart")?.addEventListener("click", () => {
       participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
       if (inputParticipantId) inputParticipantId.value = participantId;
+      refreshParticipantSetup();
 
-      // 2. 清空回合計數與當前受測結果
-      currentTurnIndex = 0;
+      currentStepIndex = 0;
       evaluationResults.length = 0;
 
-      // 3. 確保抽屜隱藏並回到第一頁解說
       screenEvalSheet.classList.add("hidden");
       switchScreen("intro");
 
-      showToast("已重置為新回合，歡迎重新體驗！");
+      showToast("已重置為新受測編號，歡迎重新體驗！");
     });
 
     window.addEventListener("DOMContentLoaded", () => {
+      refreshParticipantSetup();
       checkAdminPrivilege();
       initCloudSync();
     });

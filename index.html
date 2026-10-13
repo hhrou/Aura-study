@@ -1071,20 +1071,6 @@
     // ==========================================
     // 4. 事件綁定與流程控制
     // ==========================================
-    btnGenId?.addEventListener("click", () => {
-      participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
-      if (inputParticipantId) inputParticipantId.value = participantId;
-      refreshParticipantSetup();
-      showToast(`已產生新編號：${participantId}`);
-    });
-
-    inputParticipantId?.addEventListener("input", (e) => {
-      const val = e.target.value.trim();
-      if (val) {
-        participantId = val;
-        refreshParticipantSetup();
-      }
-    });
 
     document.getElementById("btn-start").addEventListener("click", () => {
       const customId = inputParticipantId?.value?.trim();

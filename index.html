@@ -937,14 +937,14 @@
       return wrap;
     }
 
-    function openEvaluationSheet(turnIdx) {
-      const turnData = SCENARIO_TURNS[turnIdx];
-      evalTitle.textContent = `請評估 Turn ${turnData.turnNumber} 的互動感受`;
-      evalErrorMsg.classList.add("hidden");
-      evalForm.reset();
+   function openEvaluationSheet(turnIdx) {
+  const turnData = SCENARIO_TURNS[turnIdx];
+  evalTitle.textContent = `請評估 Turn ${turnData.turnNumber} 的互動感受`;
+  if (evalErrorMsg) evalErrorMsg.classList.add("hidden");
 
-      screenEvalSheet.classList.remove("hidden");
-    }
+  // 不重設表單，保留使用者剛勾選的內容
+  screenEvalSheet.classList.remove("hidden");
+}
 
     function updateAdminDashboard() {
       const allData = globalCloudResponses;

@@ -747,9 +747,10 @@
       assignedGroup = assignGroupFromId(participantId);
       activeSequence = BALANCED_ORDERS[assignedGroup].map(condKey => SCENARIO_BANK[condKey]);
       
-      const labelGroup = document.getElementById("label-assigned-group");
-      if (labelGroup) {
-        labelGroup.textContent = `平衡組別: Group ${assignedGroup}`;
+      // 更新首頁的純文字編號顯示
+      const displayId = document.getElementById("display-participant-id");
+      if (displayId) {
+        displayId.textContent = participantId;
       }
     }
 

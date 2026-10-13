@@ -880,7 +880,9 @@
       }
     }
 
-    function renderTurn(turnIdx) {
+   function renderTurn(turnIdx) {
+      if (evalForm) evalForm.reset();
+
       const turnData = SCENARIO_TURNS[turnIdx];
       chatHeaderTurnLabel.textContent = `Turn ${turnData.turnNumber} of 5`;
       chatTimestamp.textContent = turnData.timeLabel;

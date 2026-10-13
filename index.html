@@ -1075,14 +1075,14 @@
       screenEvalSheet.classList.add("hidden");
     });
 
- evalForm.addEventListener("submit", async (e) => {
+ evalForm.addEventListener("submit", (e) => {
       e.preventDefault();
       
       const expRadio = evalForm.querySelector('input[name="EXP_MC"]:checked');
       const ageRadio = evalForm.querySelector('input[name="AGE_MC"]:checked');
       const creepRadio = evalForm.querySelector('input[name="CREEP_T"]:checked');
 
-      // 嚴格阻擋：任一題沒填就中斷，絕不放行
+      // 嚴格阻擋：任一題沒填就中斷
       if (!expRadio || !ageRadio || !creepRadio) {
         if (evalErrorMsg) {
           evalErrorMsg.textContent = "⚠️ 請完成全部 3 題感受評估後再送出！";
@@ -1094,13 +1094,6 @@
 
       if (evalErrorMsg) {
         evalErrorMsg.classList.add("hidden");
-      }
-
-      // 防止受測者連續點擊造成多次跳回合
-      const submitBtn = document.getElementById("btn-submit-eval");
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "資料儲存中...";
       }
 
       const expVal = expRadio.value;
@@ -1117,29 +1110,22 @@
         timestamp: new Date().toISOString()
       };
 
-      try {
-        evaluationResults.push(record);
-        await syncResponseToCloud(record);
+      // 1. 本地立即記錄
+      evaluationResults.push(record);
 
-        // 唯有雲端同步/存檔完成，才關閉抽屜並推進回合
-        screenEvalSheet.classList.add("hidden");
+      // 2. 移除 await，讓雲端上傳在背景非同步執行（不再卡住畫面）
+      syncResponseToCloud(record).catch(err => console.error("背景上傳失敗：", err));
 
-        if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
-          currentTurnIndex++;
-          renderTurn(currentTurnIndex);
-          showToast(`已進入 Turn ${currentTurnIndex + 1}`);
-        } else {
-          renderCompleteScreen();
-          switchScreen("complete");
-        }
-      } catch (err) {
-        console.error("提交失敗：", err);
-        alert("資料儲存發生異常，請重新點擊送出！");
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "確認送出，進入下一回合";
-        }
+      // 3. 瞬間關閉抽屜並推進回合（0 延遲切換）
+      screenEvalSheet.classList.add("hidden");
+
+      if (currentTurnIndex < SCENARIO_TURNS.length - 1) {
+        currentTurnIndex++;
+        renderTurn(currentTurnIndex);
+        showToast(`已進入 Turn ${currentTurnIndex + 1}`);
+      } else {
+        renderCompleteScreen();
+        switchScreen("complete");
       }
     });
 

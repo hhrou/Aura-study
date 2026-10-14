@@ -946,6 +946,7 @@
       }
 
       try {
+        // 寫入路徑改回原本成功的路徑：
         const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
         await addDoc(responsesColRef, {
           ...record,

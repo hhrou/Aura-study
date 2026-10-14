@@ -1248,7 +1248,7 @@
 
     document.getElementById("btn-restart")?.addEventListener("click", () => {
       participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
-      if (inputParticipantId) inputParticipantId.value = participantId;
+     
       refreshParticipantSetup();
 
       currentStepIndex = 0;

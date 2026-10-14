@@ -156,26 +156,14 @@
               </div>
             </div>
 
-         <!-- 受測者編號設置 -->
-            <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block text-xs font-bold text-slate-700">受測者編號 (Participant ID)</label>
-                <span id="label-assigned-group" class="text-[10px] text-indigo-600 font-mono font-bold bg-indigo-50 px-2 py-0.5 rounded-full">組別分派中</span>
+        <!-- 受測者專屬編號卡片 (系統自動配發) -->
+            <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+              <div>
+                <span class="block text-[11px] font-bold text-slate-400">受測者專屬編號</span>
+                <span id="display-participant-id" class="text-sm font-mono font-extrabold text-indigo-600 tracking-wider">配發中...</span>
               </div>
-              <div class="flex items-center gap-2">
-                <input 
-                  type="text" 
-                  id="input-participant-id" 
-                  class="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50"
-                  placeholder="例如：P_8921"
-                >
-                <button 
-                  id="btn-gen-id" 
-                  class="px-3 py-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition"
-                >
-                  隨機產生
-                </button>
-              </div>
+              <!-- 平衡組別維持在 DOM 內供後台運作，但受測者端不顯示 -->
+              <span id="label-assigned-group" class="hidden"></span>
             </div>
 
             <!-- 情境背景說明卡片 -->

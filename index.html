@@ -919,8 +919,9 @@
       }
     }
 
-    function setupRealtimeListener() {
+  function setupRealtimeListener() {
       if (!db || !currentUser) return;
+      // 讀取路徑改回原本成功的路徑：
       const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
       
       onSnapshot(responsesColRef, (snapshot) => {

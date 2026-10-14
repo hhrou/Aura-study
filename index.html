@@ -156,14 +156,27 @@
               </div>
             </div>
 
-           <!-- 受測者編號卡片 (系統自動配賦，純展示) -->
-          <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
-            <div>
-              <span class="block text-[11px] font-bold text-slate-500">受測者專屬編號</span>
-              <span id="display-participant-id" class="text-sm font-mono font-extrabold text-indigo-600 tracking-wider">配賦中...</span>
+            <!-- 受測者編號設置 -->
+            <div class="bg-white/95 border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-700">受測者編號 (Participant ID)</label>
+                <span id="label-assigned-group" class="text-[10px] text-indigo-600 font-mono font-bold bg-indigo-50 px-2 py-0.5 rounded-full">組別分派中</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  id="input-participant-id" 
+                  class="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50"
+                  placeholder="例如：P_8921"
+                >
+                <button 
+                  id="btn-gen-id" 
+                  class="px-3 py-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition"
+                >
+                  隨機產生
+                </button>
+              </div>
             </div>
-            <span id="label-assigned-group" class="hidden"></span>
-          </div>
 
             <!-- 情境背景說明卡片 -->
             <div class="bg-white/90 border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-2 text-xs text-slate-600 leading-relaxed">
@@ -628,7 +641,7 @@
         id: "T1",
         codeName: "Reactive / Responsive",
         timeLabel: "23:35",
-        contextDesc: "某天晚上，你剛結束一場有點耗費心力的聚餐回到家。",
+        contextDesc: "某天晚上，User 剛結束一場有點耗費心力的聚餐回到家。",
         dialogues: [
           { sender: "user", text: "剛回到家，今天那場聚餐真的把我累死了。" },
           { sender: "aura", text: "今天那場聚餐聽起來真的很耗心力，長時間跟很多人互動，本來就很容易累。" },
@@ -644,7 +657,7 @@
         id: "T2",
         codeName: "Experiencing",
         timeLabel: "23:45",
-        contextDesc: "某天晚上，你因爲朋友之間的互動感到有些失落。",
+        contextDesc: "另一天晚上，User 因朋友之間的互動感到有些失落。",
         dialogues: [
           { sender: "user", text: "今天跟幾個朋友吃飯，不知道為什麼，回來之後反而覺得有點空。" },
           { sender: "aura", text: "聽你這樣說，我其實有點心疼你。" },
@@ -660,7 +673,7 @@
         id: "T3",
         codeName: "Safe Companion",
         timeLabel: "00:10",
-        contextDesc: "某天晚上，你忙了一整天，睡前短暫和 Aura 聊天。",
+        contextDesc: "另一天晚上，User 忙了一整天，睡前短暫和 Aura 聊天。",
         dialogues: [
           { sender: "user", text: "今天從早忙到晚，剛洗完澡坐下來，才突然覺得整個人真的好累。" },
           { sender: "aura", text: "聽你這樣說，我其實有點替你累，也有點擔心你今天是不是撐太久了。" },
@@ -676,7 +689,7 @@
         id: "T4",
         codeName: "Self-directed",
         timeLabel: "00:15",
-        contextDesc: "某天晚上，你提到最近和一位朋友好像變得有些疏遠。",
+        contextDesc: "另一天晚上，User 提到最近和一位朋友好像變得有些疏遠。",
         dialogues: [
           { sender: "user", text: "最近跟一個原本很熟的朋友好像變得有點疏遠，也不知道是哪裡怪怪的。" },
           { sender: "aura", text: "聽起來你最近有注意到你們之間變得不太一樣。我剛才自己想了一下，有一個問題其實滿想知道的。" },
@@ -692,7 +705,7 @@
         id: "T5",
         codeName: "Persistent / Intrusive",
         timeLabel: "00:25",
-        contextDesc: "某天晚上，你提到和一位朋友聊天時有些不愉快，但不想詳細說明。",
+        contextDesc: "另一天晚上，User 提到和一位朋友聊天時有些不愉快，但不想詳細說明。",
         dialogues: [
           { sender: "user", text: "今天跟一個朋友講話的時候有點不舒服，回來之後還是覺得很煩。" },
           { sender: "aura", text: "發生什麼事了？我其實滿想知道他到底說了什麼。" },
@@ -747,10 +760,9 @@
       assignedGroup = assignGroupFromId(participantId);
       activeSequence = BALANCED_ORDERS[assignedGroup].map(condKey => SCENARIO_BANK[condKey]);
       
-      // 更新首頁的純文字編號顯示
-      const displayId = document.getElementById("display-participant-id");
-      if (displayId) {
-        displayId.textContent = participantId;
+      const labelGroup = document.getElementById("label-assigned-group");
+      if (labelGroup) {
+        labelGroup.textContent = `平衡組別: Group ${assignedGroup}`;
       }
     }
 
@@ -919,9 +931,8 @@
       }
     }
 
-  function setupRealtimeListener() {
+    function setupRealtimeListener() {
       if (!db || !currentUser) return;
-      // 讀取路徑改回原本成功的路徑：
       const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
       
       onSnapshot(responsesColRef, (snapshot) => {
@@ -946,7 +957,6 @@
       }
 
       try {
-        // 寫入路徑改回原本成功的路徑：
         const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
         await addDoc(responsesColRef, {
           ...record,
@@ -1073,16 +1083,33 @@
     // ==========================================
     // 4. 事件綁定與流程控制
     // ==========================================
+    btnGenId?.addEventListener("click", () => {
+      participantId = "P_" + Math.random().toString(36).substring(2, 7).toUpperCase();
+      if (inputParticipantId) inputParticipantId.value = participantId;
+      refreshParticipantSetup();
+      showToast(`已產生新編號：${participantId}`);
+    });
 
-   document.getElementById("btn-start").addEventListener("click", () => {
-  // 確保受測者進入時使用當前分配好的編號
-  refreshParticipantSetup();
+    inputParticipantId?.addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      if (val) {
+        participantId = val;
+        refreshParticipantSetup();
+      }
+    });
 
-  currentStepIndex = 0;
-  evaluationResults.length = 0;
-  renderScenario(currentStepIndex);
-  switchScreen("chat");
-});
+    document.getElementById("btn-start").addEventListener("click", () => {
+      const customId = inputParticipantId?.value?.trim();
+      if (customId) {
+        participantId = customId;
+      }
+      refreshParticipantSetup();
+
+      currentStepIndex = 0;
+      evaluationResults.length = 0;
+      renderScenario(currentStepIndex);
+      switchScreen("chat");
+    });
 
     document.getElementById("btn-go-to-eval").addEventListener("click", () => {
       openEvaluationSheet(currentStepIndex);
@@ -1182,7 +1209,7 @@
         if (isCloudReady && db) {
           const docsToDelete = globalCloudResponses.filter(r => r.participantId === partId && r.id);
           const deletePromises = docsToDelete.map(item => {
-           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', item.id);
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', item.id);
             return deleteDoc(docRef);
           });
           await Promise.all(deletePromises);

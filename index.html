@@ -1155,7 +1155,14 @@
       };
 
       evaluationResults.push(record);
-      syncResponseToCloud(record).catch(err => console.error("背景上傳失敗：", err));
+      syncResponseToCloud(record)
+  .then(() => {
+    console.log("上傳成功！");
+  })
+  .catch(err => {
+    console.error("背景上傳失敗：", err);
+    alert("【上傳失敗診斷訊息】\n" + err.message + "\n代碼: " + err.code);
+  });
 
       screenEvalSheet.classList.add("hidden");
 

@@ -1092,11 +1092,7 @@
       }
     });
 
-    document.getElementById("btn-start").addEventListener("click", () => {
-      const customId = inputParticipantId?.value?.trim();
-      if (customId) {
-        participantId = customId;
-      }
+   document.getElementById("btn-start").addEventListener("click", () => {
       refreshParticipantSetup();
 
       currentStepIndex = 0;

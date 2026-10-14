@@ -921,7 +921,7 @@
 
     function setupRealtimeListener() {
       if (!db || !currentUser) return;
-      const responsesColRef = collection(db, 'aura_experiment_responses');
+      const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
       
       onSnapshot(responsesColRef, (snapshot) => {
         const items = [];
@@ -945,7 +945,7 @@
       }
 
       try {
-        const responsesColRef = collection(db, 'aura_experiment_responses');
+        const responsesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'experiment_responses');
         await addDoc(responsesColRef, {
           ...record,
           userId: currentUser.uid,

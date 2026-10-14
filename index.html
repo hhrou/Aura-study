@@ -1072,18 +1072,15 @@
     // 4. 事件綁定與流程控制
     // ==========================================
 
-    document.getElementById("btn-start").addEventListener("click", () => {
-      const customId = inputParticipantId?.value?.trim();
-      if (customId) {
-        participantId = customId;
-      }
-      refreshParticipantSetup();
+   document.getElementById("btn-start").addEventListener("click", () => {
+  // 確保受測者進入時使用當前分配好的編號
+  refreshParticipantSetup();
 
-      currentStepIndex = 0;
-      evaluationResults.length = 0;
-      renderScenario(currentStepIndex);
-      switchScreen("chat");
-    });
+  currentStepIndex = 0;
+  evaluationResults.length = 0;
+  renderScenario(currentStepIndex);
+  switchScreen("chat");
+});
 
     document.getElementById("btn-go-to-eval").addEventListener("click", () => {
       openEvaluationSheet(currentStepIndex);

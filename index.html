@@ -1182,7 +1182,7 @@
         if (isCloudReady && db) {
           const docsToDelete = globalCloudResponses.filter(r => r.participantId === partId && r.id);
           const deletePromises = docsToDelete.map(item => {
-            const docRef = doc(db, 'aura_experiment_responses', item.id);
+           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'experiment_responses', item.id);
             return deleteDoc(docRef);
           });
           await Promise.all(deletePromises);

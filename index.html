@@ -314,7 +314,7 @@
                   <div class="w-full flex items-center justify-between">
                     <div>
                       <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">情境體驗評估</span>
-                      <h3 class="text-sm font-bold text-slate-900 mt-0.5" id="eval-title">請評估本情境的互動感受</h3>
+                      <h3 class="text-sm font-bold text-slate-900 mt-0.5" id="eval-title">閱讀完此段對話後，請評估您對於此情境的互動感受</h3>
                     </div>
                     <button id="btn-close-eval-sheet" class="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs" type="button" title="暫時返回對話">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -888,7 +888,7 @@
     }
 
     function openEvaluationSheet(stepIdx) {
-      evalTitle.textContent = `請評估「情境 ${stepIdx + 1}」的互動感受`;
+      evalTitle.textContent = "閱讀完此段對話後，請評估您對於此情境的互動感受";
       if (evalErrorMsg) evalErrorMsg.classList.add("hidden");
       screenEvalSheet.classList.remove("hidden");
     }

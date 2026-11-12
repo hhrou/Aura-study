@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aura 研究後台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Noto Sans TC',sans-serif;}
+  .app-scroll::-webkit-scrollbar{height:6px;width:6px;}
+  .app-scroll::-webkit-scrollbar-thumb{background:rgba(148,163,184,.5);border-radius:9999px;}
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- ====== 畫面：登入 ====== -->
+<div id="screen-login" class="min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center space-y-4">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white text-xl font-extrabold">A</div>
+    <h1 class="text-lg font-bold text-slate-900">Aura 研究後台</h1>
+    <p class="text-xs text-slate-500">請使用管理員 Google 帳號登入</p>
+    <button id="btn-login" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">
+      使用 Google 帳號登入
+    </button>
+    <p id="login-error" class="hidden text-xs text-rose-500"></p>
+  </div>
+</div>
+
+<!-- ====== 畫面：權限不足 ====== -->
+<div id="screen-forbidden" class="hidden min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center space-y-3">
+    <p class="text-sm text-slate-700">此帳號沒有後台存取權限。</p>
+    <p id="forbidden-email" class="text-xs text-slate-400"></p>
+    <button id="btn-logout-forbidden" class="text-xs text-indigo-600 underline">登出並切換帳號</button>
+  </div>
+</div>
+
+<!-- ====== 畫面：後台主畫面 ====== -->
+<div id="screen-dashboard" class="hidden min-h-screen">
+  <div class="bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between sticky top-0 z-10">
+    <div>
+      <h1 class="text-base font-bold text-slate-900">Aura 研究後台</h1>
+      <p id="current-user-email" class="text-[11px] text-slate-400"></p>
+    </div>
+    <button id="btn-logout" class="text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5">登出</button>
+  </div>
+
+  <div class="max-w-5xl mx-auto p-5 space-y-5">
+
+    <!-- 篩選列 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-semibold text-slate-600">階段</label>
+        <select id="filter-phase" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5">
+          <option value="">全部</option>
+          <option value="pretest">前測 pretest</option>
+          <option value="main">正式 main</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-semibold text-slate-600">腳本版本</label>
+        <select id="filter-version" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5">
+          <option value="">全部</option>
+        </select>
+      </div>
+      <button id="btn-refresh" class="ml-auto text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5">重新整理資料</button>
+      <button id="btn-export-csv" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5">匯出 CSV</button>
+    </div>
+
+    <!-- 總覽統計 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+        <p class="text-[11px] text-slate-400">總受測人數</p>
+        <p id="stat-total-participants" class="text-2xl font-extrabold text-slate-900 mt-1">–</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+        <p class="text-[11px] text-slate-400">已完成人數</p>
+        <p id="stat-completed" class="text-2xl font-extrabold text-emerald-600 mt-1">–</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+        <p class="text-[11px] text-slate-400">總回覆筆數</p>
+        <p id="stat-total-records" class="text-2xl font-extrabold text-indigo-600 mt-1">–</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+        <p class="text-[11px] text-slate-400">完成率</p>
+        <p id="stat-completion-rate" class="text-2xl font-extrabold text-slate-900 mt-1">–</p>
+      </div>
+    </div>
+
+    <!-- 各情境分派人數 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+      <p class="text-sm font-bold text-slate-800 mb-3">各生活主題分派人數</p>
+      <div id="group-balance-bar" class="flex gap-2"></div>
+    </div>
+
+    <!-- 各互動類型平均數 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto app-scroll">
+      <p class="text-sm font-bold text-slate-800 mb-3">各互動類型（T1–T5）平均評分</p>
+      <table class="w-full text-xs text-center min-w-[480px]">
+        <thead class="text-slate-400 border-b border-slate-200">
+          <tr>
+            <th class="py-1.5 text-left pl-1">類型</th>
+            <th>不安感 CREEP-T</th>
+            <th>感受性 EXP-MC</th>
+            <th>能動性 AGE-MC</th>
+            <th>筆數 N</th>
+          </tr>
+        </thead>
+        <tbody id="type-summary-body" class="divide-y divide-slate-100 font-mono"></tbody>
+      </table>
+    </div>
+
+    <!-- 明細資料 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-bold text-slate-800">回覆明細</p>
+        <input id="detail-filter" type="text" placeholder="搜尋代碼..." class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-40">
+      </div>
+      <div class="overflow-x-auto app-scroll">
+        <table class="w-full text-left text-[11px] min-w-[760px]">
+          <thead class="bg-slate-50 text-slate-400 sticky top-0">
+            <tr>
+              <th class="p-2">代碼</th>
+              <th class="p-2">階段</th>
+              <th class="p-2">版本</th>
+              <th class="p-2">主題</th>
+              <th class="p-2">順序組</th>
+              <th class="p-2">第幾段</th>
+              <th class="p-2">類型</th>
+              <th class="p-2">CREEP</th>
+              <th class="p-2">EXP</th>
+              <th class="p-2">AGE</th>
+              <th class="p-2">時間</th>
+            </tr>
+          </thead>
+          <tbody id="detail-body" class="divide-y divide-slate-100 font-mono"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 危險操作：清除資料 -->
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+      <p class="text-sm font-bold text-rose-700">清除資料（無法復原）</p>
+      <p class="text-xs text-rose-600">僅會刪除符合上方篩選條件（階段／版本）的 experiment_responses 與 participant_progress 資料，不影響其他條件的資料。</p>
+      <button id="btn-danger-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold">
+        刪除目前篩選條件下的所有資料
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 hidden bg-slate-900/95 text-white text-xs px-4 py-2 rounded-full shadow-xl"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, where, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// ============ 0. 設定區：請填入與 index.html 相同的 Firebase 設定 ============
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBepvWsnrDAf2wK3ZMo0InnjYJZC2KPO20",
+  authDomain: "aura-research-fd621.firebaseapp.com",
+  projectId: "aura-research-fd621",
+  storageBucket: "aura-research-fd621.firebasestorage.app",
+  messagingSenderId: "507257673835",
+  appId: "1:507257673835:web:10d6aa08b0e3b9c16ef92e"
+};
+const APP_ID = "aura-mpt-app-study"; // 需與 index.html 一致
+
+// 管理員白名單：只有這些 Email 能看到後台資料（必須與 firestore.rules 中的清單一致）
+const ADMIN_EMAILS = ["ella920731@gmail.com"];
+
+const app = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const el = id => document.getElementById(id);
+function show(id){
+  ["screen-login","screen-forbidden","screen-dashboard"].forEach(s=>el(s).classList.add("hidden"));
+  el(id).classList.remove("hidden");
+}
+function toast(msg){
+  const t = el("toast"); t.textContent = msg; t.classList.remove("hidden");
+  setTimeout(()=>t.classList.add("hidden"), 2200);
+}
+
+let allResponses = [];
+let allProgress = [];
+
+// ============ 1. 登入 / 權限判斷 ============
+el("btn-login").addEventListener("click", async () => {
+  el("login-error").classList.add("hidden");
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    el("login-error").textContent = "登入失敗：" + err.message;
+    el("login-error").classList.remove("hidden");
+  }
+});
+
+el("btn-logout").addEventListener("click", () => signOut(auth));
+el("btn-logout-forbidden").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { show("screen-login"); return; }
+  if (!ADMIN_EMAILS.includes(user.email)) {
+    el("forbidden-email").textContent = `目前登入帳號：${user.email}`;
+    show("screen-forbidden");
+    return;
+  }
+  el("current-user-email").textContent = user.email;
+  show("screen-dashboard");
+  await loadData();
+});
+
+// ============ 2. 讀取資料 ============
+async function loadData(){
+  try {
+    const respSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "experiment_responses"));
+    allResponses = respSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const progSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "participant_progress"));
+    allProgress = progSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    populateVersionFilter();
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    toast("讀取資料失敗：" + err.message);
+  }
+}
+
+function populateVersionFilter(){
+  const sel = el("filter-version");
+  const existing = new Set(Array.from(sel.options).map(o=>o.value));
+  const versions = new Set(allResponses.map(r => r.scriptVersion).filter(Boolean));
+  versions.forEach(v => {
+    if (!existing.has(v)) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function getFiltered(){
+  const phase = el("filter-phase").value;
+  const version = el("filter-version").value;
+  return allResponses.filter(r =>
+    (!phase || r.phase === phase) &&
+    (!version || r.scriptVersion === version)
+  );
+}
+function getFilteredProgress(){
+  const phase = el("filter-phase").value;
+  const version = el("filter-version").value;
+  return allProgress.filter(p =>
+    (!phase || p.phase === phase) &&
+    (!version || p.scriptVersion === version)
+  );
+}
+
+// ============ 3. 畫面渲染 ============
+function renderAll(){
+  const responses = getFiltered();
+  const progress = getFilteredProgress();
+
+  const uniqueParticipants = new Set(progress.map(p => p.participantId));
+  const completedCount = progress.filter(p => p.completed).length;
+
+  el("stat-total-participants").textContent = uniqueParticipants.size;
+  el("stat-completed").textContent = completedCount;
+  el("stat-total-records").textContent = responses.length;
+  el("stat-completion-rate").textContent = uniqueParticipants.size
+    ? Math.round((completedCount / uniqueParticipants.size) * 100) + "%"
+    : "–";
+
+  renderGroupBalance(progress);
+  renderTypeSummary(responses);
+  renderDetailTable(responses);
+}
+
+function renderGroupBalance(progress){
+  const box = el("group-balance-bar");
+  box.innerHTML = "";
+  const groups = ["G1","G2","G3"];
+  const labels = { G1:"晚間生活與人際互動", G2:"忙碌生活與日常安排", G3:"週末邀約與個人空間" };
+  const counts = {}; groups.forEach(g => counts[g] = progress.filter(p=>p.group===g).length);
+  const max = Math.max(1, ...Object.values(counts));
+
+  groups.forEach(g => {
+    const pct = Math.round((counts[g]/max)*100);
+    const col = document.createElement("div");
+    col.className = "flex-1 text-center";
+    col.innerHTML = `
+      <div class="h-24 bg-slate-100 rounded-lg flex items-end overflow-hidden">
+        <div class="w-full bg-indigo-500 rounded-t-lg transition-all" style="height:${pct}%"></div>
+      </div>
+      <p class="text-xs font-bold text-slate-700 mt-1">${counts[g]}</p>
+      <p class="text-[10px] text-slate-400">${labels[g]}</p>
+    `;
+    box.appendChild(col);
+  });
+}
+
+function renderTypeSummary(responses){
+  const order = ["T1","T2","T3","T4","T5"];
+  const names = { T1:"一般回應型", T2:"感受性表達型", T3:"安全陪伴型", T4:"自主引導與有限度界線試探型", T5:"持續追問型" };
+  const tbody = el("type-summary-body");
+  tbody.innerHTML = "";
+  order.forEach(t => {
+    const rows = responses.filter(r => r.condition === t);
+    const n = rows.length;
+    const avg = (key) => n ? (rows.reduce((a,b)=>a+(Number(b[key])||0),0)/n).toFixed(2) : "–";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="py-1.5 text-left pl-1">
+        <span class="font-bold text-indigo-600">${t}</span>
+        <span class="text-[10px] text-slate-400 block">${names[t]}</span>
+      </td>
+      <td class="${Number(avg("creep"))>=4.5 ? "text-rose-500 font-bold" : ""}">${avg("creep")}</td>
+      <td>${avg("exp")}</td>
+      <td>${avg("age")}</td>
+      <td class="text-slate-400">${n}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDetailTable(responses){
+  const tbody = el("detail-body");
+  const keyword = el("detail-filter").value.trim().toLowerCase();
+  const filtered = keyword
+    ? responses.filter(r => (r.participantId||"").toLowerCase().includes(keyword))
+    : responses;
+
+  const sorted = [...filtered].sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0));
+
+  tbody.innerHTML = "";
+  if (sorted.length === 0){
+    tbody.innerHTML = `<tr><td colspan="11" class="p-3 text-center text-slate-400">尚無符合條件的資料</td></tr>`;
+    return;
+  }
+  sorted.forEach(r => {
+    let t = "-";
+    if (r.timestamp){
+      const d = new Date(r.timestamp);
+      if (!isNaN(d.getTime())){
+        t = `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      }
+    }
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="p-2">${r.participantId||"-"}</td>
+      <td class="p-2">${r.phase||"-"}</td>
+      <td class="p-2 text-slate-400">${r.scriptVersion||"-"}</td>
+      <td class="p-2">${r.group||"-"}</td>
+      <td class="p-2">${r.orderKey||"-"}</td>
+      <td class="p-2">${r.orderIndex||"-"}</td>
+      <td class="p-2 font-bold text-indigo-600">${r.condition||"-"}</td>
+      <td class="p-2 ${Number(r.creep)>=5?"text-rose-500 font-bold":""}">${r.creep??"-"}</td>
+      <td class="p-2">${r.exp??"-"}</td>
+      <td class="p-2">${r.age??"-"}</td>
+      <td class="p-2 text-slate-400 whitespace-nowrap">${t}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============ 4. 事件 ============
+el("filter-phase").addEventListener("change", renderAll);
+el("filter-version").addEventListener("change", renderAll);
+el("detail-filter").addEventListener("input", renderAll);
+el("btn-refresh").addEventListener("click", loadData);
+
+el("btn-export-csv").addEventListener("click", () => {
+  const rows = getFiltered();
+  if (rows.length === 0){ toast("目前篩選條件下沒有資料"); return; }
+  const headers = ["participantId","phase","scriptVersion","group","orderKey","orderIndex","condition","creep","exp","age","readingMs","timestamp"];
+  const csvRows = rows.map(r => headers.map(h => `"${(r[h]??"").toString().replace(/"/g,'""')}"`).join(","));
+  const csv = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...csvRows].join("\n");
+  const link = document.createElement("a");
+  link.href = encodeURI(csv);
+  link.download = `aura_responses_${Date.now()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast("已匯出 CSV");
+});
+
+el("btn-danger-delete").addEventListener("click", async () => {
+  const phase = el("filter-phase").value;
+  const version = el("filter-version").value;
+  const scope = `階段：${phase||"全部"}，版本：${version||"全部"}`;
+
+  if (!phase && !version){
+    if (!confirm(`您沒有設定任何篩選條件，這將刪除「全部」資料，確定要刪除嗎？\n\n${scope}`)) return;
+  } else {
+    if (!confirm(`確定要刪除符合以下條件的資料嗎？此操作無法復原。\n\n${scope}`)) return;
+  }
+  const doubleCheck = prompt(`請輸入 DELETE 以確認刪除（${scope}）`);
+  if (doubleCheck !== "DELETE") { toast("已取消刪除"); return; }
+
+  toast("刪除中，請稍候...");
+  try {
+    const targetResponses = getFiltered();
+    const targetProgress = getFilteredProgress();
+
+    for (const r of targetResponses){
+      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id));
+    }
+    for (const p of targetProgress){
+      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id));
+    }
+    toast(`已刪除 ${targetResponses.length} 筆回覆、${targetProgress.length} 筆進度資料`);
+    await loadData();
+  } catch (err){
+    console.error(err);
+    toast("刪除過程發生錯誤：" + err.message);
+  }
+});
+</script>
+</body>
+</html>

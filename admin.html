@@ -113,6 +113,20 @@
       </table>
     </div>
 
+    <!-- 完成時間與退出分布 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center flex flex-col justify-center">
+        <p class="text-[11px] text-slate-400">平均完成時間（已完成者）</p>
+        <p id="stat-avg-duration" class="text-2xl font-extrabold text-slate-900 mt-1">–</p>
+        <p class="text-[10px] text-slate-400 mt-1">自開始閱讀至送出最後一段評估</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-4">
+        <p class="text-sm font-bold text-slate-800 mb-2">中途退出之互動類型分布</p>
+        <div id="withdrawal-summary" class="grid grid-cols-5 gap-2 text-center"></div>
+        <p class="text-[10px] text-slate-400 mt-2">顯示受測者於哪一種互動類型（T1–T5）停止參與，可判斷特定類型是否較易引發退出</p>
+      </div>
+    </div>
+
     <!-- 明細資料 -->
     <div class="bg-white rounded-2xl border border-slate-200 p-4">
       <div class="flex items-center justify-between mb-3">
@@ -288,7 +302,49 @@ function renderAll(){
 
   renderGroupBalance(progress);
   renderTypeSummary(responses);
+  renderDuration(progress);
+  renderWithdrawalSummary(progress);
   renderDetailTable(responses);
+}
+
+function renderDuration(progress){
+  const completedWithTimes = progress.filter(p => p.completed && p.startedAt && p.completedAt);
+  if (completedWithTimes.length === 0){
+    el("stat-avg-duration").textContent = "–";
+    return;
+  }
+  const totalMinutes = completedWithTimes.reduce((sum, p) => {
+    const start = new Date(p.startedAt).getTime();
+    const end = new Date(p.completedAt).getTime();
+    return sum + Math.max(0, (end - start) / 60000);
+  }, 0);
+  const avgMinutes = totalMinutes / completedWithTimes.length;
+  el("stat-avg-duration").textContent = avgMinutes.toFixed(1) + " 分鐘";
+}
+
+function renderWithdrawalSummary(progress){
+  const order = ["T1","T2","T3","T4","T5"];
+  const withdrawnList = progress.filter(p => p.withdrawn);
+  const counts = {}; order.forEach(t => counts[t] = 0);
+  withdrawnList.forEach(p => {
+    if (p.withdrawnAtCondition && counts.hasOwnProperty(p.withdrawnAtCondition)){
+      counts[p.withdrawnAtCondition]++;
+    }
+  });
+  const box = el("withdrawal-summary");
+  box.innerHTML = "";
+  order.forEach(t => {
+    const col = document.createElement("div");
+    col.className = "bg-slate-50 rounded-lg py-2";
+    col.innerHTML = `
+      <p class="text-[10px] text-slate-400">${t}</p>
+      <p class="text-sm font-bold ${counts[t] > 0 ? "text-rose-500" : "text-slate-700"}">${counts[t]}</p>
+    `;
+    box.appendChild(col);
+  });
+  if (withdrawnList.length === 0){
+    box.innerHTML = `<p class="col-span-5 text-xs text-slate-400 py-2">目前沒有中途退出的紀錄</p>`;
+  }
 }
 
 function renderGroupBalance(progress){

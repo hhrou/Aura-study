@@ -169,8 +169,16 @@ const params = new URLSearchParams(window.location.search);
 const PHASE = params.get("phase") === "main" ? "main" : "pretest"; // 預設前測
 const incomingPid = (params.get("pid") || "").trim();
 
+// 若網址沒有帶 pid（例如直接發送固定連結給大家），系統自動產生一組隨機代碼；
+// 若之後改為「問卷先產生代碼、帶網址參數過來」，incomingPid 會優先使用，不受影響。
+function randId(len=6){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 避開 0/O, 1/I
+  let s = ""; for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
 let db = null, auth = null;
-let participantId = incomingPid;
+let participantId = incomingPid || randId();
 let assignedGroup = null;   // G1/G2/G3
 let assignedOrderKey = null; // A..J
 let activeSequence = [];     // ["T1".."T5"] 依指定順序
@@ -322,12 +330,6 @@ function buildLikertRow(container){
 }
 document.querySelectorAll("[data-field]").forEach(buildLikertRow);
 
-function randId(len=6){
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 避開 0/O, 1/I
-  let s = ""; for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
-  return s;
-}
-
 // ============ 5. 事件 ============
 el("btn-start").addEventListener("click", () => {
   renderStep(currentStep);
@@ -418,10 +420,6 @@ el("btn-copy-code").addEventListener("click", async () => {
 
 // ============ 6. 啟動流程 ============
 async function boot(){
-  if (!incomingPid){
-    show("screen-noaccess");
-    return;
-  }
   try {
     await initFirebase();
     await assignParticipant();

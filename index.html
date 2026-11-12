@@ -77,9 +77,12 @@
       <div id="turn-messages" class="space-y-3 pt-1"></div>
     </div>
 
-    <div class="bg-white/95 backdrop-blur border-t border-slate-200 p-3 shrink-0">
+    <div class="bg-white/95 backdrop-blur border-t border-slate-200 p-3 shrink-0 space-y-2">
       <button id="btn-go-eval" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold text-sm rounded-xl shadow-sm transition">
         我已閱讀完畢，進行感受評估
+      </button>
+      <button id="btn-withdraw" type="button" class="w-full text-center text-[11px] text-slate-400 hover:text-slate-500 underline">
+        我想先停止參與
       </button>
     </div>
   </div>
@@ -120,7 +123,29 @@
     </div>
   </div>
 
-  <!-- ====== 畫面：完成頁（顯示完成碼） ====== -->
+  <!-- ====== 畫面：確認是否停止參與 ====== -->
+  <div id="screen-withdraw-confirm" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4 fade-in">
+      <p class="text-sm font-bold text-slate-900">確定要停止參與嗎？</p>
+      <p class="text-xs text-slate-500 leading-relaxed">您可以隨時停止參與，不需要說明理由，也不會有任何不利影響。停止後，已填答的部分仍會被保留。</p>
+      <div class="flex gap-2">
+        <button id="btn-withdraw-cancel" class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 transition">繼續填答</button>
+        <button id="btn-withdraw-confirm" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl transition">確定停止</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 畫面：已停止參與 ====== -->
+  <div id="screen-withdrawn" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 fade-in">
+    <p class="text-sm font-bold text-slate-800">感謝您的參與</p>
+    <p class="text-xs text-slate-500 leading-relaxed max-w-xs">
+      本次體驗中的所有對話內容，均為研究者預先設計之虛構腳本，不代表任何真實人工智慧系統之實際能力或行為。<br><br>
+      若您在閱讀過程中感到不舒服，建議休息一下，或與信任的朋友聊聊。
+    </p>
+    <p class="text-xs text-slate-400">您可以直接關閉此頁面。</p>
+  </div>
+
+  <!-- ====== 畫面：完成頁（正式施測版：顯示完成碼、前往問卷） ====== -->
   <div id="screen-complete" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 fade-in">
     <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
@@ -137,6 +162,42 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
     </a>
     <p id="survey-link-missing" class="text-xs text-slate-400">完成碼請於進入問卷後貼上對應欄位。</p>
+  </div>
+
+  <!-- ====== 畫面：完成頁（前測專屬版：感謝參與、意見回饋） ====== -->
+  <div id="screen-complete-pretest" class="hidden flex-1 flex flex-col p-6 pt-10 overflow-y-auto app-scroll fade-in">
+    <div class="text-center space-y-3 mb-5">
+      <div class="w-14 h-14 mx-auto bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="text-lg font-bold text-slate-900">五段對話已完成，感謝您的參與</h2>
+      <p class="text-xs text-slate-500">這是前測，不需要前往任何問卷，填寫完下方幾個簡短問題即可結束。</p>
+      <p class="text-[11px] text-slate-400 leading-relaxed">
+        本次體驗中的所有對話內容，均為研究者預先設計之虛構腳本，不代表任何真實人工智慧系統之實際能力或行為。
+      </p>
+    </div>
+
+    <form id="feedback-form" class="space-y-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
+        <p class="text-xs font-bold text-slate-800">1. 整體而言，這五段對話讀起來是否順暢、容易理解？</p>
+        <div class="grid grid-cols-5 gap-1 pt-1" data-field="FEEDBACK_CLARITY" data-scale="5"></div>
+        <div class="flex justify-between text-[10px] text-slate-400 px-1"><span>非常不順暢 (1)</span><span>非常順暢 (5)</span></div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
+        <p class="text-xs font-bold text-slate-800">2. 五段對話中，有沒有哪一段讓您覺得特別奇怪、難懂，或跟其他段落感覺不太一樣？（非必填）</p>
+        <textarea id="feedback-odd" rows="3" class="w-full text-xs border border-slate-200 rounded-xl p-2.5" placeholder="例如：第幾段、哪一句話、為什麼覺得奇怪"></textarea>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
+        <p class="text-xs font-bold text-slate-800">3. 其他任何想法或建議（非必填）</p>
+        <textarea id="feedback-other" rows="3" class="w-full text-xs border border-slate-200 rounded-xl p-2.5" placeholder="介面好不好用、題目會不會太多、任何想說的都可以"></textarea>
+      </div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition">送出意見，結束前測</button>
+    </form>
+
+    <div id="feedback-done" class="hidden text-center py-6 space-y-2">
+      <p class="text-sm font-bold text-slate-800">已收到您的意見，謝謝！</p>
+      <p class="text-xs text-slate-400">您可以直接關閉此頁面。</p>
+    </div>
   </div>
 
 </div>
@@ -177,6 +238,21 @@ function randId(len=6){
   return s;
 }
 
+// 裝置資訊：僅供研究者對照「意見回饋」與「顯示問題」之用，不要求受測者提供任何資訊
+function getDeviceInfo(){
+  try {
+    return {
+      screenW: window.screen ? window.screen.width : null,
+      screenH: window.screen ? window.screen.height : null,
+      viewportW: window.innerWidth,
+      viewportH: window.innerHeight,
+      isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+    };
+  } catch {
+    return {};
+  }
+}
+
 let db = null, auth = null;
 let participantId = incomingPid || randId();
 let assignedGroup = null;   // G1/G2/G3
@@ -187,7 +263,7 @@ const stepStartTimes = {};
 
 const el = id => document.getElementById(id);
 function show(id){
-  ["screen-noaccess","screen-loading","screen-intro","screen-chat","screen-complete"].forEach(s=>el(s).classList.add("hidden"));
+  ["screen-noaccess","screen-loading","screen-intro","screen-chat","screen-complete","screen-complete-pretest","screen-withdrawn"].forEach(s=>el(s).classList.add("hidden"));
   el(id).classList.remove("hidden");
 }
 function toast(msg){
@@ -239,7 +315,9 @@ async function assignParticipant(){
   await setDoc(progressRef, {
     participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION,
     group: assignedGroup, orderKey: assignedOrderKey,
-    currentStep: 0, startedAt: new Date().toISOString(), completed: false
+    currentStep: 0, startedAt: new Date().toISOString(), completed: false,
+    withdrawn: false,
+    deviceInfo: getDeviceInfo()
   });
 
   await setDoc(counterRef, {
@@ -317,8 +395,10 @@ function scrollChatToTop(){
 }
 
 function buildLikertRow(container){
+  // 量尺點數預設為 7，若容器有 data-scale（例如意見回饋用 5 點量尺），則依該值建構
+  const scale = parseInt(container.dataset.scale || "7", 10);
   container.innerHTML = "";
-  for (let i=1;i<=7;i++){
+  for (let i=1;i<=scale;i++){
     const label = document.createElement("label");
     label.className = "flex flex-col items-center cursor-pointer group";
     label.innerHTML = `
@@ -352,6 +432,31 @@ el("btn-back-to-chat").addEventListener("click", () => {
 });
 
 function show_eval(v){ el("screen-eval").classList.toggle("hidden", !v); }
+function show_withdraw_confirm(v){ el("screen-withdraw-confirm").classList.toggle("hidden", !v); }
+
+el("btn-withdraw").addEventListener("click", () => {
+  show_withdraw_confirm(true);
+});
+el("btn-withdraw-cancel").addEventListener("click", () => {
+  show_withdraw_confirm(false);
+});
+el("btn-withdraw-confirm").addEventListener("click", async () => {
+  show_withdraw_confirm(false);
+  show_eval(false);
+  const condition = activeSequence[currentStep];
+  try {
+    const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
+    await setDoc(progressRef, {
+      withdrawn: true,
+      withdrawnAt: new Date().toISOString(),
+      withdrawnAtCondition: condition || null,
+      withdrawnAtOrderIndex: currentStep + 1
+    }, { merge: true });
+  } catch (err) {
+    console.warn("withdraw record failed:", err);
+  }
+  show("screen-withdrawn");
+});
 
 el("eval-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -394,6 +499,10 @@ el("eval-form").addEventListener("submit", async (e) => {
 });
 
 function showCompletionScreen(){
+  if (PHASE === "pretest"){
+    show("screen-complete-pretest");
+    return;
+  }
   el("completion-code").textContent = participantId;
   const link = el("btn-goto-survey");
   const missingMsg = el("survey-link-missing");
@@ -416,6 +525,37 @@ el("btn-copy-code").addEventListener("click", async () => {
   } catch {
     toast("複製失敗，請手動選取文字複製");
   }
+});
+
+// 前測專屬：意見回饋表單送出
+el("feedback-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const clarity = fd.get("FEEDBACK_CLARITY");
+  if (!clarity) {
+    toast("請先選擇第一題的分數再送出");
+    return;
+  }
+  const record = {
+    participantId,
+    phase: PHASE,
+    scriptVersion: SCRIPT_VERSION,
+    group: assignedGroup,
+    orderKey: assignedOrderKey,
+    clarity: parseInt(clarity, 10),
+    oddSegmentNote: (el("feedback-odd").value || "").trim(),
+    otherNote: (el("feedback-other").value || "").trim(),
+    deviceInfo: getDeviceInfo(),
+    timestamp: new Date().toISOString()
+  };
+  try {
+    const col = collection(db, "artifacts", APP_ID, "public", "data", "pretest_feedback");
+    await addDoc(col, record);
+  } catch (err) {
+    console.warn("feedback write failed:", err);
+  }
+  el("feedback-form").classList.add("hidden");
+  el("feedback-done").classList.remove("hidden");
 });
 
 // ============ 6. 啟動流程 ============

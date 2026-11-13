@@ -66,6 +66,12 @@
           <option value="">全部</option>
         </select>
       </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-semibold text-slate-600">施測批次</label>
+        <select id="filter-run" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5">
+          <option value="">全部</option>
+        </select>
+      </div>
       <button id="btn-refresh" class="ml-auto text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5">重新整理資料</button>
       <button id="btn-export-csv" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5">匯出回覆 CSV</button>
       <button id="btn-export-feedback-csv" class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg px-3 py-1.5">匯出意見回饋 CSV</button>
@@ -157,6 +163,7 @@
               <th class="p-2">代碼</th>
               <th class="p-2">階段</th>
               <th class="p-2">版本</th>
+              <th class="p-2">批次</th>
               <th class="p-2">主題</th>
               <th class="p-2">順序組</th>
               <th class="p-2">第幾段</th>
@@ -183,11 +190,25 @@
         同時將「分派計數器」歸零
       </label>
       <p id="reset-counters-hint" class="text-[10px] text-rose-500 -mt-2">
-        分派計數器僅以「階段」為單位記錄，不分腳本版本；因此只有在「階段」已指定、且「腳本版本」為全部時，才能勾選歸零，避免刪除單一版本的資料時，誤將其他版本共用的計數一併清空。
+        分派計數器以「階段＋施測批次」為單位記錄，不分腳本版本；因此只有在「階段」與「施測批次」皆已指定、且「腳本版本」為全部時，才能勾選歸零，避免刪除單一版本的資料時，誤將同一批次內其他版本共用的計數一併清空。
       </p>
       <button id="btn-danger-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold">
         刪除目前篩選條件下的所有資料
       </button>
+    </div>
+
+    <!-- 依代碼刪除單一受測者資料（供受測者申請刪除時使用） -->
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+      <div>
+        <p class="text-sm font-bold text-rose-700">依代碼刪除單一受測者資料</p>
+        <p class="text-xs text-rose-600 mt-1">受測者（含中途退出者）來信申請刪除時，於下方輸入其識別代碼，會刪除該代碼在 experiment_responses、participant_progress、pretest_feedback 三個集合中的所有資料，不影響其他受測者。</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="single-delete-code" type="text" placeholder="輸入受測者識別代碼" class="text-xs border border-rose-200 rounded-lg px-2 py-1.5 flex-1">
+        <button id="btn-single-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold whitespace-nowrap">
+          刪除此代碼的全部資料
+        </button>
+      </div>
     </div>
 
   </div>
@@ -272,6 +293,7 @@ async function loadData(){
     allFeedback = feedbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     populateVersionFilter();
+    populateRunFilter();
     renderAll();
   } catch (err) {
     console.error(err);
@@ -292,28 +314,51 @@ function populateVersionFilter(){
   });
 }
 
+function populateRunFilter(){
+  const sel = el("filter-run");
+  const existing = new Set(Array.from(sel.options).map(o=>o.value));
+  const runs = new Set([
+    ...allResponses.map(r => r.studyRunId),
+    ...allProgress.map(p => p.studyRunId),
+    ...allFeedback.map(f => f.studyRunId)
+  ].filter(Boolean));
+  runs.forEach(v => {
+    if (!existing.has(v)) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+  });
+}
+
 function getFiltered(){
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
+  const run = el("filter-run").value;
   return allResponses.filter(r =>
     (!phase || r.phase === phase) &&
-    (!version || r.scriptVersion === version)
+    (!version || r.scriptVersion === version) &&
+    (!run || r.studyRunId === run)
   );
 }
 function getFilteredProgress(){
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
+  const run = el("filter-run").value;
   return allProgress.filter(p =>
     (!phase || p.phase === phase) &&
-    (!version || p.scriptVersion === version)
+    (!version || p.scriptVersion === version) &&
+    (!run || p.studyRunId === run)
   );
 }
 function getFilteredFeedback(){
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
+  const run = el("filter-run").value;
   return allFeedback.filter(f =>
     (!phase || f.phase === phase) &&
-    (!version || f.scriptVersion === version)
+    (!version || f.scriptVersion === version) &&
+    (!run || f.studyRunId === run)
   );
 }
 
@@ -512,7 +557,7 @@ function renderDetailTable(responses){
   if (sorted.length === 0){
     const tr = document.createElement("tr");
     const td = el_("td", "p-3 text-center text-slate-400", "尚無符合條件的資料");
-    td.colSpan = 11;
+    td.colSpan = 12;
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -524,6 +569,7 @@ function renderDetailTable(responses){
     tr.appendChild(el_("td", "p-2", r.participantId || "-"));
     tr.appendChild(el_("td", "p-2", r.phase || "-"));
     tr.appendChild(el_("td", "p-2 text-slate-400", r.scriptVersion || "-"));
+    tr.appendChild(el_("td", "p-2 text-slate-400", r.studyRunId || "-"));
     tr.appendChild(el_("td", "p-2", r.group || "-"));
     tr.appendChild(el_("td", "p-2", r.orderKey || "-"));
     tr.appendChild(el_("td", "p-2", r.orderIndex != null ? String(r.orderIndex) : "-"));
@@ -539,15 +585,18 @@ function renderDetailTable(responses){
 // ============ 4. 事件 ============
 el("filter-phase").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
 el("filter-version").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
+el("filter-run").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
 el("detail-filter").addEventListener("input", renderAll);
 el("btn-refresh").addEventListener("click", loadData);
 
-// 分派計數器僅以「階段」為單位，不分版本；因此只有「階段已指定、版本為全部」時才能勾選歸零，
-// 避免刪除單一腳本版本的資料時，誤將其他版本共用的計數一併清空。
+// 分派計數器以「階段 + 施測批次」為單位，不分腳本版本；
+// 因此只有「階段」與「施測批次」皆已指定、且「腳本版本」為全部時，才能勾選歸零，
+// 避免刪除單一腳本版本的資料時，誤將同一批次內其他版本共用的計數一併清空。
 function syncResetCountersAvailability(){
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
-  const available = !!phase && !version;
+  const run = el("filter-run").value;
+  const available = !!phase && !!run && !version;
   const chk = el("chk-reset-counters");
   chk.disabled = !available;
   if (!available) chk.checked = false;
@@ -580,7 +629,7 @@ function downloadCsv(headers, rows, filenamePrefix){
 el("btn-export-csv").addEventListener("click", () => {
   const rows = getFiltered();
   if (rows.length === 0){ toast("目前篩選條件下沒有資料"); return; }
-  const headers = ["participantId","phase","scriptVersion","group","orderKey","orderIndex","condition","creep","exp","agency","readingMs","totalMs","timestamp"];
+  const headers = ["participantId","phase","scriptVersion","studyRunId","group","orderKey","orderIndex","condition","creep","exp","agency","readingMs","totalMs","timestamp"];
   downloadCsv(headers, rows, "aura_responses");
   toast("已匯出回覆 CSV");
 });
@@ -588,7 +637,7 @@ el("btn-export-csv").addEventListener("click", () => {
 el("btn-export-feedback-csv").addEventListener("click", () => {
   const rows = getFilteredFeedback();
   if (rows.length === 0){ toast("目前篩選條件下沒有意見回饋資料"); return; }
-  const headers = ["participantId","phase","scriptVersion","group","orderKey","clarity","oddSegmentNote","otherNote","timestamp"];
+  const headers = ["participantId","phase","scriptVersion","studyRunId","group","orderKey","clarity","oddSegmentNote","otherNote","timestamp"];
   downloadCsv(headers, rows, "aura_pretest_feedback");
   toast("已匯出意見回饋 CSV");
 });
@@ -606,12 +655,14 @@ async function batchDeleteDocs(refs){
 el("btn-danger-delete").addEventListener("click", async () => {
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
+  const run = el("filter-run").value;
   const wantResetCounters = el("chk-reset-counters").checked && !el("chk-reset-counters").disabled;
-  const scope = `階段：${phase||"全部"}，版本：${version||"全部"}`;
+  const scope = `階段：${phase||"全部"}，版本：${version||"全部"}，批次：${run||"全部"}`;
+  const counterDocId = `${phase}__${run}`;
 
   let msg = `確定要刪除符合以下條件的資料嗎？此操作無法復原。\n\n${scope}`;
-  if (wantResetCounters) msg += `\n\n同時將歸零 assignment_counters/${phase} 這份計數器文件。`;
-  if (!phase && !version){
+  if (wantResetCounters) msg += `\n\n同時將歸零 assignment_counters/${counterDocId} 這份計數器文件。`;
+  if (!phase && !version && !run){
     msg = `您沒有設定任何篩選條件，這將刪除「全部」資料，確定要刪除嗎？\n\n${scope}`;
   }
   if (!confirm(msg)) return;
@@ -634,12 +685,49 @@ el("btn-danger-delete").addEventListener("click", async () => {
 
     let counterMsg = "";
     if (wantResetCounters){
-      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", phase));
-      counterMsg = `，並已歸零 ${phase} 分派計數器`;
+      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", counterDocId));
+      counterMsg = `，並已歸零 ${counterDocId} 分派計數器`;
     }
 
     toast(`已刪除 ${targetResponses.length} 筆回覆、${targetProgress.length} 筆進度、${targetFeedback.length} 筆意見回饋${counterMsg}`);
     el("chk-reset-counters").checked = false;
+    await loadData();
+  } catch (err){
+    console.error(err);
+    toast("刪除過程發生錯誤：" + err.message);
+  }
+});
+
+// 依受測者代碼刪除單一受測者之全部資料（供收到刪除申請時使用），
+// 不受上方篩選條件影響，直接以代碼比對三個集合中的既有資料。
+el("btn-single-delete").addEventListener("click", async () => {
+  const code = el("single-delete-code").value.trim();
+  if (!code){ toast("請先輸入受測者識別代碼"); return; }
+
+  const matchedResponses = allResponses.filter(r => r.participantId === code);
+  const matchedProgress = allProgress.filter(p => p.participantId === code);
+  const matchedFeedback = allFeedback.filter(f => f.participantId === code);
+  const total = matchedResponses.length + matchedProgress.length + matchedFeedback.length;
+
+  if (total === 0){ toast(`找不到代碼「${code}」的任何資料`); return; }
+
+  const msg = `確定要刪除代碼「${code}」的全部資料嗎？此操作無法復原。\n\n將刪除 ${matchedResponses.length} 筆回覆、${matchedProgress.length} 筆進度、${matchedFeedback.length} 筆意見回饋。`;
+  if (!confirm(msg)) return;
+
+  const doubleCheck = prompt(`請輸入 DELETE 以確認刪除（代碼：${code}）`);
+  if (doubleCheck !== "DELETE") { toast("已取消刪除"); return; }
+
+  toast("刪除中，請稍候...");
+  try {
+    await batchDeleteDocs(matchedResponses.map(r =>
+      doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id)));
+    await batchDeleteDocs(matchedProgress.map(p =>
+      doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id)));
+    await batchDeleteDocs(matchedFeedback.map(f =>
+      doc(db, "artifacts", APP_ID, "public", "data", "pretest_feedback", f.id)));
+
+    toast(`已刪除代碼「${code}」的全部資料（共 ${total} 筆）`);
+    el("single-delete-code").value = "";
     await loadData();
   } catch (err){
     console.error(err);

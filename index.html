@@ -51,9 +51,9 @@
       <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 leading-relaxed">
         部分對話內容可能讓您感到不安或不舒服，您可以隨時停止參與，無須說明理由。
       </div>
-      <label id="consent-row" class="hidden items-start gap-2 text-xs text-slate-600 leading-relaxed">
+      <label id="consent-row" class="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
         <input type="checkbox" id="consent-checkbox" class="mt-0.5 rounded border-slate-300">
-        <span>我已年滿十八歲，並已詳閱上述說明，同意自願參與本研究。</span>
+        <span id="consent-text">我已詳閱上述說明，同意自願參與本研究。</span>
       </label>
     </div>
     <button id="btn-start" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-2xl shadow-md transition">
@@ -148,6 +148,11 @@
       本次體驗中的所有對話內容，均為研究者預先設計之虛構腳本，不代表任何真實人工智慧系統之實際能力或行為。<br><br>
       若您在閱讀過程中感到不舒服，建議休息一下，或與信任的朋友聊聊。
     </p>
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 w-full max-w-xs">
+      <p class="text-[11px] text-slate-400 mb-1">您的識別代碼（如需聯絡研究者，請提供此代碼）</p>
+      <p id="withdrawn-code" class="text-base font-mono font-bold text-slate-700 tracking-widest"></p>
+    </div>
+    <p id="deletion-notice-withdrawn" class="hidden text-[11px] text-slate-400 leading-relaxed max-w-xs"></p>
     <p class="text-xs text-slate-400">您可以直接關閉此頁面。</p>
   </div>
 
@@ -168,6 +173,7 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
     </a>
     <p id="survey-link-missing" class="text-xs text-slate-400">完成碼請於進入問卷後貼上對應欄位。</p>
+    <p id="deletion-notice-main" class="hidden text-[11px] text-slate-400 leading-relaxed"></p>
   </div>
 
   <!-- ====== 畫面：完成頁（前測專屬版：感謝參與、意見回饋） ====== -->
@@ -201,8 +207,13 @@
       <button type="submit" id="btn-submit-feedback" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition">送出意見，結束前測</button>
     </form>
 
-    <div id="feedback-done" class="hidden text-center py-6 space-y-2">
+    <div id="feedback-done" class="hidden text-center py-6 space-y-3">
       <p class="text-sm font-bold text-slate-800">已收到您的意見，謝謝！</p>
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 mx-auto max-w-xs">
+        <p class="text-[11px] text-slate-400 mb-1">您的識別代碼（如需聯絡研究者，請提供此代碼）</p>
+        <p id="pretest-done-code" class="text-base font-mono font-bold text-slate-700 tracking-widest"></p>
+      </div>
+      <p id="deletion-notice-pretest" class="hidden text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto"></p>
       <p class="text-xs text-slate-400">您可以直接關閉此頁面。</p>
     </div>
   </div>
@@ -235,16 +246,30 @@ const APP_ID = "aura-mpt-app-study"; // 需與 admin.html 一致
 // 留空字串 "" 代表尚未設定，完成頁會隱藏「前往問卷」按鈕，只顯示完成碼。
 const SURVEY_URL = "";
 
+// 資料刪除申請管道：受測者（含中途退出者）可於下列期限內，攜帶自己的識別代碼，
+// 聯絡研究者申請刪除其資料；若不需要時間限制，DATA_DELETION_WINDOW_TEXT 可填「無特定期限」等說明。
+// 這兩項待與指導教授及研究倫理審查確認後再填入；兩者皆為空字串時，畫面不會顯示任何刪除申請說明，
+// 也不會提供錯誤或尚未確認的資訊給受測者。
+const DATA_DELETION_CONTACT = "";
+const DATA_DELETION_WINDOW_TEXT = "";
+
 // 預估完成時間（分鐘）：目前為研究者依經驗推估之暫定值。
 // 待前測蒐集到實際平均完成時間後（後台「平均完成時間」統計），請將下列數字改為正式數據，
 // 不需修改其他任何程式碼，畫面文字會自動依此更新。
 const ESTIMATED_MINUTES_LOW = 5;
 const ESTIMATED_MINUTES_HIGH = 8;
 
-// ============ 1. 讀取網址參數，決定 phase 與識別碼 ============
+// ============ 1. 讀取網址參數，決定 phase、施測批次與識別碼 ============
 const params = new URLSearchParams(window.location.search);
 const PHASE = params.get("phase") === "main" ? "main" : "pretest"; // 預設前測
 const incomingPid = (params.get("pid") || "").trim();
+
+// 施測批次識別碼（studyRunId）：用於區分不同輪次的前測（例如改版腳本後的第二輪前測），
+// 避免不同輪次共用同一份分派計數器，也讓分析時能依批次篩選資料。
+// 每次要開始「新的一輪」施測前，請把下方預設值改成新的名稱（例如把 "run1" 改成 "run2"）；
+// 也可改用網址參數 ?run=xxx 臨時指定，不需要修改程式碼即可切換批次。
+const DEFAULT_STUDY_RUN_ID = "run1";
+const STUDY_RUN_ID = (params.get("run") || DEFAULT_STUDY_RUN_ID).trim();
 
 function randId(len=6){
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 避開 0/O, 1/I
@@ -256,7 +281,7 @@ function randId(len=6){
 // 1. 網址若帶 pid（例如未來從問卷導入），一律優先使用，並覆寫本機暫存。
 // 2. 否則，依 phase 各自嘗試讀取瀏覽器 localStorage 中先前使用過的代碼；若有，直接延用。
 // 3. 都沒有，才產生新代碼，並存入 localStorage 供下次重新整理時延用。
-const LOCAL_STORAGE_KEY = `aura_pid_${PHASE}`;
+const LOCAL_STORAGE_KEY = `aura_pid_${PHASE}_${STUDY_RUN_ID}`;
 function resolveParticipantId(){
   if (incomingPid) {
     try { localStorage.setItem(LOCAL_STORAGE_KEY, incomingPid); } catch {}
@@ -359,7 +384,9 @@ async function assignParticipant(){
 
   // 新受測者：以 Firestore 交易同時讀取計數器、決定分派、並寫入進度與計數器，
   // 降低多人同時進入時的競爭條件（race condition）。
-  const counterRef = doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", PHASE);
+  // 計數器文件路徑同時以 phase 與 studyRunId 區分，不同輪次（例如改版腳本後的第二輪前測）
+  // 不會共用同一份累積人數，也不需要在開新一輪前手動歸零。
+  const counterRef = doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", `${PHASE}__${STUDY_RUN_ID}`);
   const ownerUid = auth.currentUser ? auth.currentUser.uid : null;
 
   await runTransaction(db, async (tx) => {
@@ -385,7 +412,7 @@ async function assignParticipant(){
     cleanCounts[comboKey] = (cleanCounts[comboKey] || 0) + 1;
 
     tx.set(progressRef, {
-      participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION,
+      participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION, studyRunId: STUDY_RUN_ID,
       ownerUid,
       group: assignedGroup, orderKey: assignedOrderKey,
       currentStep: 0, startedAt: new Date().toISOString(), completed: false,
@@ -396,21 +423,9 @@ async function assignParticipant(){
   });
 }
 
-async function saveProgress(stepIdx){
-  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
-  await setDoc(progressRef, { currentStep: stepIdx }, { merge: true });
-}
-
-async function markCompleted(){
-  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
-  // 同時把 currentStep 更新為總段數，避免「completed 為 true、但 currentStep 未滿」
-  // 導致重新整理後又被判定為「尚未完成」而重新進入最後一段。
-  await setDoc(progressRef, {
-    completed: true,
-    currentStep: activeSequence.length,
-    completedAt: new Date().toISOString()
-  }, { merge: true });
-}
+// 註：過去這裡曾有獨立的 saveProgress()／markCompleted() 函式，分兩次寫入答案與進度；
+// 現已合併進 eval-form 送出事件中的單一交易（runTransaction），確保兩者同時成功或同時失敗，
+// 避免「答案已寫入、進度未更新」的中間狀態導致受測者卡住，故移除這兩個函式。
 
 // ============ 4. 畫面渲染 ============
 function bubble(speaker, text){
@@ -491,16 +506,16 @@ function buildLikertRow(container){
 document.querySelectorAll("[data-field]").forEach(buildLikertRow);
 
 // ============ 5. 事件：閱讀說明／同意勾選 ============
-// 僅正式施測（phase=main）顯示年滿十八歲與同意參與之勾選；前測沿用先前決定，不強制此步驟。
-if (PHASE === "main"){
-  const row = el("consent-row");
-  row.classList.remove("hidden");
-  row.classList.add("flex");
-  el("btn-start").disabled = true;
-  el("consent-checkbox").addEventListener("change", (e) => {
-    el("btn-start").disabled = !e.target.checked;
-  });
-}
+// 前測與正式施測皆須明確勾選「同意自願參與」才能開始；
+// 「確認年齡」與「取得同意」為兩件不同的事——年滿十八歲之聲明僅於正式施測（phase=main）顯示，
+// 前測邀請對象為研究者已確認年滿十八歲之人，故不重複此聲明，但仍要求明確之參與同意，不可省略。
+el("consent-text").textContent = (PHASE === "main")
+  ? "我已年滿十八歲，並已詳閱上述說明，同意自願參與本研究。"
+  : "我已詳閱上述說明，同意自願參與本研究。";
+el("btn-start").disabled = true;
+el("consent-checkbox").addEventListener("change", (e) => {
+  el("btn-start").disabled = !e.target.checked;
+});
 
 el("btn-start").addEventListener("click", () => {
   renderStep(currentStep);
@@ -552,8 +567,21 @@ el("btn-withdraw-confirm").addEventListener("click", async () => {
     try { await setDoc(progressRef, payload, { merge: true }); }
     catch (err2) { console.warn("withdraw record failed again:", err2); }
   }
+  el("withdrawn-code").textContent = participantId;
+  populateDeletionNotice("deletion-notice-withdrawn");
   show("screen-withdrawn");
 });
+
+// 依設定顯示「申請刪除資料」說明；兩項設定皆為空字串時，該段落維持隱藏，不顯示任何內容。
+function populateDeletionNotice(elementId){
+  const el_ = el(elementId);
+  if (!DATA_DELETION_CONTACT || !DATA_DELETION_WINDOW_TEXT){
+    el_.classList.add("hidden");
+    return;
+  }
+  el_.textContent = `若您想要求刪除本次資料，請於${DATA_DELETION_WINDOW_TEXT}內，攜帶上方識別代碼聯絡研究者：${DATA_DELETION_CONTACT}。`;
+  el_.classList.remove("hidden");
+}
 
 el("eval-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -579,7 +607,7 @@ el("eval-form").addEventListener("submit", async (e) => {
 
   const orderIndex = currentStep + 1;
   const record = {
-    participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION,
+    participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION, studyRunId: STUDY_RUN_ID,
     group: assignedGroup, orderKey: assignedOrderKey,
     orderIndex, condition,
     creep: parseInt(creep,10), exp: parseInt(exp,10), agency: parseInt(agency,10),
@@ -587,11 +615,30 @@ el("eval-form").addEventListener("submit", async (e) => {
     timestamp: serverTimestamp()
   };
 
+  const isLastStep = currentStep >= activeSequence.length - 1;
+  const nextStep = currentStep + 1;
+
+  const respRef = doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", `${participantId}__step${orderIndex}`);
+  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
+
   try {
-    // 以「受測者代碼 + 第幾段」作為固定文件 ID：
-    // 同一受測者對同一段只會成功寫入一次，重複點擊或重新送出都會被資料庫規則擋下，不會造成重複紀錄。
-    const respRef = doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", `${participantId}__step${orderIndex}`);
-    await setDoc(respRef, record);
+    // 答案與進度在同一筆交易中一起寫入：只有兩者都成功才會生效，任一失敗則兩者都不會變更。
+    // 這樣可避免「答案寫入成功、但進度未更新」的中間狀態——若發生該狀態，受測者重新整理後
+    // 會被要求重填已寫入過的那一段，但因文件 ID 固定、規則禁止覆寫，將永遠卡在失敗重試。
+    await runTransaction(db, async (tx) => {
+      // 以「受測者代碼 + 第幾段」作為固定文件 ID：
+      // 同一受測者對同一段只會成功寫入一次，重複點擊或重新送出都會被資料庫規則擋下，不會造成重複紀錄。
+      tx.set(respRef, record);
+      if (isLastStep){
+        tx.set(progressRef, {
+          completed: true,
+          currentStep: activeSequence.length,
+          completedAt: new Date().toISOString()
+        }, { merge: true });
+      } else {
+        tx.set(progressRef, { currentStep: nextStep }, { merge: true });
+      }
+    });
   } catch(err){
     console.warn("write failed:", err);
     el("eval-submit-error").classList.remove("hidden");
@@ -601,21 +648,11 @@ el("eval-form").addEventListener("submit", async (e) => {
 
   show_eval(false);
 
-  if (currentStep < activeSequence.length - 1){
-    currentStep++;
-    try {
-      await saveProgress(currentStep);
-    } catch (err) {
-      console.warn("saveProgress failed (non-blocking):", err);
-    }
+  if (!isLastStep){
+    currentStep = nextStep;
     renderStep(currentStep);
     toast(`已進入第 ${currentStep+1} 段 / 共 5 段`);
   } else {
-    try {
-      await markCompleted();
-    } catch (err) {
-      console.warn("markCompleted failed (non-blocking):", err);
-    }
     showCompletionScreen();
   }
   submitBtn.disabled = false;
@@ -638,6 +675,7 @@ function showCompletionScreen(){
     link.classList.add("hidden");
     missingMsg.classList.remove("hidden");
   }
+  populateDeletionNotice("deletion-notice-main");
   show("screen-complete");
 }
 
@@ -667,6 +705,7 @@ el("feedback-form").addEventListener("submit", async (e) => {
     participantId,
     phase: PHASE,
     scriptVersion: SCRIPT_VERSION,
+    studyRunId: STUDY_RUN_ID,
     group: assignedGroup,
     orderKey: assignedOrderKey,
     clarity: parseInt(clarity, 10),
@@ -686,6 +725,8 @@ el("feedback-form").addEventListener("submit", async (e) => {
     return;
   }
   el("feedback-form").classList.add("hidden");
+  el("pretest-done-code").textContent = participantId;
+  populateDeletionNotice("deletion-notice-pretest");
   el("feedback-done").classList.remove("hidden");
 });
 

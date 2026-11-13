@@ -127,6 +127,15 @@
       </div>
     </div>
 
+    <!-- 前測意見回饋 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-bold text-slate-800">前測意見回饋</p>
+        <span class="text-[11px] text-slate-400">僅 phase=pretest 之資料會寫入此集合</span>
+      </div>
+      <div id="feedback-list" class="space-y-3"></div>
+    </div>
+
     <!-- 明細資料 -->
     <div class="bg-white rounded-2xl border border-slate-200 p-4">
       <div class="flex items-center justify-between mb-3">
@@ -211,6 +220,7 @@ function toast(msg){
 
 let allResponses = [];
 let allProgress = [];
+let allFeedback = [];
 
 // ============ 1. 登入 / 權限判斷 ============
 el("btn-login").addEventListener("click", async () => {
@@ -246,6 +256,9 @@ async function loadData(){
 
     const progSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "participant_progress"));
     allProgress = progSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const feedbackSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "pretest_feedback"));
+    allFeedback = feedbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     populateVersionFilter();
     renderAll();
@@ -284,6 +297,14 @@ function getFilteredProgress(){
     (!version || p.scriptVersion === version)
   );
 }
+function getFilteredFeedback(){
+  const phase = el("filter-phase").value;
+  const version = el("filter-version").value;
+  return allFeedback.filter(f =>
+    (!phase || f.phase === phase) &&
+    (!version || f.scriptVersion === version)
+  );
+}
 
 // ============ 3. 畫面渲染 ============
 function renderAll(){
@@ -304,7 +325,47 @@ function renderAll(){
   renderTypeSummary(responses);
   renderDuration(progress);
   renderWithdrawalSummary(progress);
+  renderFeedbackList(getFilteredFeedback());
   renderDetailTable(responses);
+}
+
+function renderFeedbackList(feedbackRows){
+  const box = el("feedback-list");
+  box.innerHTML = "";
+  if (feedbackRows.length === 0){
+    box.innerHTML = `<p class="text-xs text-slate-400 py-2">目前篩選條件下沒有意見回饋</p>`;
+    return;
+  }
+  const sorted = [...feedbackRows].sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0));
+  sorted.forEach(f => {
+    const card = document.createElement("div");
+    card.className = "border border-slate-200 rounded-xl p-3 text-xs space-y-1.5";
+    const device = f.deviceInfo || {};
+    const deviceStr = device.viewportW
+      ? `${device.isMobile ? "手機" : "電腦"}・視窗 ${device.viewportW}×${device.viewportH}`
+      : "（無裝置資訊）";
+    let t = "-";
+    if (f.timestamp){
+      const d = new Date(f.timestamp);
+      if (!isNaN(d.getTime())){
+        t = `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      }
+    }
+    card.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span class="font-mono font-bold text-indigo-600">${f.participantId || "-"}</span>
+        <span class="text-slate-400">${t}</span>
+      </div>
+      <div class="flex items-center gap-3 text-slate-500">
+        <span>順暢度：<span class="font-bold ${Number(f.clarity) <= 2 ? "text-rose-500" : "text-slate-700"}">${f.clarity ?? "-"} / 5</span></span>
+        <span>${f.group || "-"}</span>
+        <span class="text-slate-400">${deviceStr}</span>
+      </div>
+      ${f.oddSegmentNote ? `<p class="bg-amber-50 rounded-lg p-2 text-amber-800">奇怪／不自然處：${f.oddSegmentNote}</p>` : ""}
+      ${f.otherNote ? `<p class="bg-slate-50 rounded-lg p-2 text-slate-600">其他意見：${f.otherNote}</p>` : ""}
+    `;
+    box.appendChild(card);
+  });
 }
 
 function renderDuration(progress){

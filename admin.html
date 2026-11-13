@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -101,7 +102,7 @@
       </div>
     </div>
     <p id="stat-mismatch-warning" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-      「已完成人數」與「有效完成人數」不一致，代表有受測者被標記為完成，但實際回覆筆數不足五筆（可能是較早版本在儲存失敗時仍往下一段所致）。
+      至少一筆完成狀態與五段有效答案的核對結果不一致，請核對批次與明細。
     </p>
 
     <!-- 各情境分派人數 -->
@@ -179,34 +180,30 @@
       </div>
     </div>
 
-    <!-- 危險操作：清除資料 -->
-    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
-      <div>
-        <p class="text-sm font-bold text-rose-700">清除資料（無法復原）</p>
-        <p class="text-xs text-rose-600 mt-1">僅會刪除符合上方篩選條件（階段／版本）的 experiment_responses、participant_progress 與 pretest_feedback 資料，不影響其他條件的資料。</p>
+    <section class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+      <p class="text-sm font-bold text-slate-900">施測批次管理</p>
+      <p class="text-xs text-slate-600">開啟新批次會建立獨立的分派計數器。暫停招募只停止新分派，既有受測者仍可續填。</p>
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="batch-phase" aria-label="施測階段" class="text-xs border rounded p-2"><option value="pretest">前測</option><option value="main">正式</option></select>
+        <input id="batch-run" aria-label="施測批次代碼" value="qa-v2" maxlength="40" class="text-xs border rounded p-2" placeholder="批次代碼">
+        <button id="btn-batch-create" class="text-xs bg-indigo-600 text-white rounded p-2">建立新批次</button>
+        <button id="btn-batch-close" class="text-xs bg-slate-700 text-white rounded p-2">暫停招募</button>
+        <button id="btn-batch-open" class="text-xs bg-slate-700 text-white rounded p-2">恢復招募</button>
       </div>
-      <label id="reset-counters-row" class="flex items-center gap-2 text-xs text-rose-700">
-        <input type="checkbox" id="chk-reset-counters" class="rounded border-rose-300">
-        同時將「分派計數器」歸零
-      </label>
-      <p id="reset-counters-hint" class="text-[10px] text-rose-500 -mt-2">
-        分派計數器以「階段＋施測批次」為單位記錄，不分腳本版本；因此只有在「階段」與「施測批次」皆已指定、且「腳本版本」為全部時，才能勾選歸零，避免刪除單一版本的資料時，誤將同一批次內其他版本共用的計數一併清空。
-      </p>
-      <button id="btn-danger-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold">
-        刪除目前篩選條件下的所有資料
-      </button>
-    </div>
+      <a id="batch-link" class="hidden text-xs text-indigo-700 underline" target="_blank" rel="noopener">開啟此批次施測頁</a>
+      <p id="batch-state" class="text-xs text-slate-600"></p>
+    </section>
 
     <!-- 依代碼刪除單一受測者資料（供受測者申請刪除時使用） -->
     <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
       <div>
         <p class="text-sm font-bold text-rose-700">依代碼刪除單一受測者資料</p>
-        <p class="text-xs text-rose-600 mt-1">受測者（含中途退出者）來信申請刪除時，於下方輸入其識別代碼，會刪除該代碼在 experiment_responses、participant_progress、pretest_feedback 三個集合中的所有資料，不影響其他受測者。</p>
+        <p class="text-xs text-rose-600 mt-1">先在上方選定階段及批次。依研究核准的程序確認申請後再執行；六碼只供查找。此處只處理新版 Firestore 資料，不含外部問卷或已匯出的檔案。</p>
       </div>
       <div class="flex items-center gap-2">
         <input id="single-delete-code" type="text" placeholder="輸入受測者識別代碼" class="text-xs border border-rose-200 rounded-lg px-2 py-1.5 flex-1">
         <button id="btn-single-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold whitespace-nowrap">
-          刪除此代碼的全部資料
+          刪除此批次的受測者資料
         </button>
       </div>
     </div>
@@ -219,7 +216,9 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+import { GROUP_IDS, ORDER_KEYS, BALANCED_ORDERS, SCRIPT_VERSION } from "./scenarios.js";
 
 // ============ 0. 設定區：請填入與 index.html 相同的 Firebase 設定 ============
 const FIREBASE_CONFIG = {
@@ -230,7 +229,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "507257673835",
   appId: "1:507257673835:web:10d6aa08b0e3b9c16ef92e"
 };
-const APP_ID = "aura-mpt-app-study"; // 需與 index.html 一致
+const APP_ID = "aura-mpt-app-study-v2"; // 需與 index.html 一致
 
 // 管理員白名單：只有這些 Email 能看到後台資料（必須與 firestore.rules 中的清單一致）
 const ADMIN_EMAILS = ["ella920731@gmail.com"];
@@ -253,6 +252,9 @@ function toast(msg){
 let allResponses = [];
 let allProgress = [];
 let allFeedback = [];
+let allCounters = [];
+const ref = (c, id) => doc(db, "artifacts", APP_ID, "public", "data", c, id);
+const coll = c => collection(db, "artifacts", APP_ID, "public", "data", c);
 
 // ============ 1. 登入 / 權限判斷 ============
 el("btn-login").addEventListener("click", async () => {
@@ -283,18 +285,19 @@ onAuthStateChanged(auth, async (user) => {
 // ============ 2. 讀取資料 ============
 async function loadData(){
   try {
-    const respSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "experiment_responses"));
-    allResponses = respSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    const progSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "participant_progress"));
-    allProgress = progSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    const feedbackSnap = await getDocs(collection(db, "artifacts", APP_ID, "public", "data", "pretest_feedback"));
-    allFeedback = feedbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
+    const [r, p, f, c] = await Promise.all([
+      getDocs(coll("experiment_responses")), getDocs(coll("participant_progress")),
+      getDocs(coll("pretest_feedback")), getDocs(coll("assignment_counters"))
+    ]);
+    const rows = s => s.docs.map(d => ({ ...d.data(), id: d.id }));
+    allResponses = rows(r);
+    allProgress = rows(p);
+    allFeedback = rows(f);
+    allCounters = rows(c);
     populateVersionFilter();
     populateRunFilter();
     renderAll();
+
   } catch (err) {
     console.error(err);
     toast("讀取資料失敗：" + err.message);
@@ -304,7 +307,7 @@ async function loadData(){
 function populateVersionFilter(){
   const sel = el("filter-version");
   const existing = new Set(Array.from(sel.options).map(o=>o.value));
-  const versions = new Set(allResponses.map(r => r.scriptVersion).filter(Boolean));
+  const versions = new Set([...allResponses, ...allProgress, ...allFeedback, ...allCounters].map(r => r.scriptVersion).filter(Boolean));
   versions.forEach(v => {
     if (!existing.has(v)) {
       const opt = document.createElement("option");
@@ -320,7 +323,8 @@ function populateRunFilter(){
   const runs = new Set([
     ...allResponses.map(r => r.studyRunId),
     ...allProgress.map(p => p.studyRunId),
-    ...allFeedback.map(f => f.studyRunId)
+    ...allFeedback.map(f => f.studyRunId),
+    ...allCounters.map(c => c.studyRunId)
   ].filter(Boolean));
   runs.forEach(v => {
     if (!existing.has(v)) {
@@ -367,32 +371,32 @@ function renderAll(){
   const responses = getFiltered();
   const progress = getFilteredProgress();
 
-  const uniqueParticipants = new Set(progress.map(p => p.participantId));
-  const completedCount = progress.filter(p => p.completed).length;
-
-  // 「有效完成人數」：獨立由 experiment_responses 重新核對，
-  // 不信任 participant_progress 的 completed 旗標，確認該受測者確實擁有五筆「相異互動類型」的回覆。
-  // 理論上應與「已完成人數」相等；若兩者不同，代表資料可能有缺漏或重複，畫面會另外提示。
-  const conditionsByParticipant = {};
-  responses.forEach(r => {
-    if (!r.participantId || !r.condition) return;
-    if (!conditionsByParticipant[r.participantId]) conditionsByParticipant[r.participantId] = new Set();
-    conditionsByParticipant[r.participantId].add(r.condition);
-  });
-  const validCompletedCount = Object.values(conditionsByParticipant).filter(s => s.size >= 5).length;
-
-  el("stat-total-participants").textContent = uniqueParticipants.size;
-  el("stat-completed").textContent = completedCount;
-  el("stat-valid-completed").textContent = validCompletedCount;
+  const byKey = new Map();
+  for (const row of responses) {
+    if (!byKey.has(row.participantKey)) byKey.set(row.participantKey, []);
+    byKey.get(row.participantKey).push(row);
+  }
+  const completeAnswerSet = p => {
+    const rows = byKey.get(p.participantKey) ?? [];
+    const order = BALANCED_ORDERS[p.orderKey];
+    return !!order && rows.length === 5 && order.every((condition, index) => rows.some(r =>
+      r.orderIndex === index + 1 && r.condition === condition && r.id === `${p.participantKey}__step${index+1}` &&
+      ["phase","studyRunId","scriptVersion","group","orderKey","participantId"].every(k => r[k] === p[k]) &&
+      [r.creep,r.exp,r.agency].every(n => Number.isInteger(n) && n >= 1 && n <= 7)));
+  };
+  const valid = progress.filter(p => p.completed === true && !p.withdrawn && completeAnswerSet(p));
+  const mismatch = progress.some(p => (p.completed === true && !p.withdrawn) !== completeAnswerSet(p)) ||
+    [...byKey.keys()].some(k => !progress.some(p => p.participantKey === k));
+  el("stat-total-participants").textContent = progress.length;
+  el("stat-completed").textContent = progress.filter(p => p.completed === true).length;
+  el("stat-valid-completed").textContent = valid.length;
   el("stat-total-records").textContent = responses.length;
-  el("stat-completion-rate").textContent = uniqueParticipants.size
-    ? Math.round((validCompletedCount / uniqueParticipants.size) * 100) + "%"
-    : "–";
-  el("stat-mismatch-warning").classList.toggle("hidden", completedCount === validCompletedCount);
+  el("stat-completion-rate").textContent = progress.length ? Math.round(valid.length / progress.length * 100) + "%" : "–";
+  el("stat-mismatch-warning").classList.toggle("hidden", !mismatch);
 
   renderGroupBalance(progress);
   renderTypeSummary(responses);
-  renderDuration(progress);
+  renderDuration(valid);
   renderWithdrawalSummary(progress);
   renderFeedbackList(getFilteredFeedback());
   renderDetailTable(responses);
@@ -407,10 +411,14 @@ function el_(tag, className, text){
   return n;
 }
 
+function asDate(ts){
+  if (!ts) return null;
+  const d = typeof ts.toDate === "function" ? ts.toDate() : new Date(ts);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
 function formatTimestamp(ts){
-  if (!ts) return "-";
-  const d = (typeof ts === "object" && ts.toDate) ? ts.toDate() : new Date(ts);
-  if (isNaN(d.getTime())) return "-";
+  const d = asDate(ts);
+  if (!d) return "-";
   return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
 
@@ -421,7 +429,7 @@ function renderFeedbackList(feedbackRows){
     box.appendChild(el_("p", "text-xs text-slate-400 py-2", "目前篩選條件下沒有意見回饋"));
     return;
   }
-  const sorted = [...feedbackRows].sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0));
+  const sorted = [...feedbackRows].sort((a,b) => (asDate(b.timestamp)?.getTime() ?? 0) - (asDate(a.timestamp)?.getTime() ?? 0));
   sorted.forEach(f => {
     const card = el_("div", "border border-slate-200 rounded-xl p-3 text-xs space-y-1.5");
     const device = f.deviceInfo || {};
@@ -464,8 +472,8 @@ function renderDuration(progress){
     return;
   }
   const totalMinutes = completedWithTimes.reduce((sum, p) => {
-    const start = new Date(p.startedAt).getTime();
-    const end = new Date(p.completedAt).getTime();
+    const start = asDate(p.startedAt)?.getTime() ?? 0;
+    const end = asDate(p.completedAt)?.getTime() ?? 0;
     return sum + Math.max(0, (end - start) / 60000);
   }, 0);
   const avgMinutes = totalMinutes / completedWithTimes.length;
@@ -551,7 +559,7 @@ function renderDetailTable(responses){
     ? responses.filter(r => (r.participantId||"").toLowerCase().includes(keyword))
     : responses;
 
-  const sorted = [...filtered].sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0));
+  const sorted = [...filtered].sort((a,b) => (asDate(b.timestamp)?.getTime() ?? 0) - (asDate(a.timestamp)?.getTime() ?? 0));
 
   tbody.innerHTML = "";
   if (sorted.length === 0){
@@ -583,37 +591,21 @@ function renderDetailTable(responses){
 }
 
 // ============ 4. 事件 ============
-el("filter-phase").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
-el("filter-version").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
-el("filter-run").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
+for (const id of ["filter-phase", "filter-version", "filter-run"]) el(id).addEventListener("change", renderAll);
 el("detail-filter").addEventListener("input", renderAll);
 el("btn-refresh").addEventListener("click", loadData);
-
-// 分派計數器以「階段 + 施測批次」為單位，不分腳本版本；
-// 因此只有「階段」與「施測批次」皆已指定、且「腳本版本」為全部時，才能勾選歸零，
-// 避免刪除單一腳本版本的資料時，誤將同一批次內其他版本共用的計數一併清空。
-function syncResetCountersAvailability(){
-  const phase = el("filter-phase").value;
-  const version = el("filter-version").value;
-  const run = el("filter-run").value;
-  const available = !!phase && !!run && !version;
-  const chk = el("chk-reset-counters");
-  chk.disabled = !available;
-  if (!available) chk.checked = false;
-}
-syncResetCountersAvailability();
 
 // 將 CSV 儲存格做基本的公式注入防護：若內容以 = + - @ 開頭，前面加一個跳脫用的單引號，
 // 避免試算表軟體（Excel、Google 試算表）把儲存格內容誤當成公式執行。
 function sanitizeCsvCell(value){
   const s = (value ?? "").toString();
-  const needsGuard = /^[=+\-@]/.test(s);
+  const needsGuard = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/.test(s);
   const guarded = needsGuard ? "'" + s : s;
   return `"${guarded.replace(/"/g, '""')}"`;
 }
 
 function downloadCsv(headers, rows, filenamePrefix){
-  const csvRows = rows.map(r => headers.map(h => sanitizeCsvCell(r[h])).join(","));
+  const csvRows = rows.map(r => headers.map(h => sanitizeCsvCell(h === "timestamp" ? (asDate(r[h])?.toISOString() ?? "") : r[h])).join(","));
   const csvText = "\uFEFF" + [headers.join(","), ...csvRows].join("\r\n");
   const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -642,98 +634,83 @@ el("btn-export-feedback-csv").addEventListener("click", () => {
   toast("已匯出意見回饋 CSV");
 });
 
-// 以 500 筆為一批進行刪除（Firestore 批次寫入上限），降低中途出錯時「刪一半」的風險範圍。
-async function batchDeleteDocs(refs){
-  const chunkSize = 450; // 留一點餘裕，避免剛好卡在上限
-  for (let i = 0; i < refs.length; i += chunkSize){
-    const batch = writeBatch(db);
-    refs.slice(i, i + chunkSize).forEach(ref => batch.delete(ref));
-    await batch.commit();
+const RUN_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,39}$/;
+let adminBusy = false;
+async function manageBatch(action){
+  if (adminBusy) return;
+  const phase = el("batch-phase").value, studyRunId = el("batch-run").value.trim();
+  if (!["pretest","main"].includes(phase) || !RUN_RE.test(studyRunId)) {
+    toast("批次代碼限 1 至 40 個英文字母、數字或連字號，首字須為英數。"); return;
   }
+  const key = `${phase}__${studyRunId}`;
+  adminBusy = true;
+  try {
+    const open = await runTransaction(db, async tx => {
+      const r = ref("assignment_counters", key);
+      const snap = await tx.get(r);
+      if (action === "create") {
+        if (snap.exists()) throw new Error("這個批次已存在，不能覆寫。請使用新名稱。");
+        const counts = Object.fromEntries(GROUP_IDS.flatMap(g => ORDER_KEYS.map(o => [`combo_${g}_${o}`, 0])));
+        tx.set(r, { phase, studyRunId, scriptVersion: SCRIPT_VERSION, open: true, counts });
+        return true;
+      }
+      if (!snap.exists()) throw new Error("這個批次尚未建立。");
+      if (action === "open" && snap.data().scriptVersion !== SCRIPT_VERSION) throw new Error("腳本版本不同，請建立新批次。");
+      tx.update(r, { open: action === "open" });
+      return action === "open";
+    });
+    const link = el("batch-link");
+    link.href = `./index.html?${new URLSearchParams({phase, run: studyRunId})}`;
+    link.classList.remove("hidden");
+    el("batch-state").textContent = `${key}：${open ? "開放新分派" : "停止新分派"}`;
+    await loadData();
+  } catch (err) { toast(err.message); }
+  finally { adminBusy = false; }
 }
+el("btn-batch-create").addEventListener("click", () => manageBatch("create"));
+el("btn-batch-open").addEventListener("click", () => manageBatch("open"));
+el("btn-batch-close").addEventListener("click", () => manageBatch("close"));
 
-el("btn-danger-delete").addEventListener("click", async () => {
-  const phase = el("filter-phase").value;
-  const version = el("filter-version").value;
-  const run = el("filter-run").value;
-  const wantResetCounters = el("chk-reset-counters").checked && !el("chk-reset-counters").disabled;
-  const scope = `階段：${phase||"全部"}，版本：${version||"全部"}，批次：${run||"全部"}`;
-  const counterDocId = `${phase}__${run}`;
-
-  let msg = `確定要刪除符合以下條件的資料嗎？此操作無法復原。\n\n${scope}`;
-  if (wantResetCounters) msg += `\n\n同時將歸零 assignment_counters/${counterDocId} 這份計數器文件。`;
-  if (!phase && !version && !run){
-    msg = `您沒有設定任何篩選條件，這將刪除「全部」資料，確定要刪除嗎？\n\n${scope}`;
-  }
-  if (!confirm(msg)) return;
-
-  const doubleCheck = prompt(`請輸入 DELETE 以確認刪除（${scope}）`);
-  if (doubleCheck !== "DELETE") { toast("已取消刪除"); return; }
-
-  toast("刪除中，請稍候...");
-  try {
-    const targetResponses = getFiltered();
-    const targetProgress = getFilteredProgress();
-    const targetFeedback = getFilteredFeedback();
-
-    await batchDeleteDocs(targetResponses.map(r =>
-      doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id)));
-    await batchDeleteDocs(targetProgress.map(p =>
-      doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id)));
-    await batchDeleteDocs(targetFeedback.map(f =>
-      doc(db, "artifacts", APP_ID, "public", "data", "pretest_feedback", f.id)));
-
-    let counterMsg = "";
-    if (wantResetCounters){
-      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", counterDocId));
-      counterMsg = `，並已歸零 ${counterDocId} 分派計數器`;
-    }
-
-    toast(`已刪除 ${targetResponses.length} 筆回覆、${targetProgress.length} 筆進度、${targetFeedback.length} 筆意見回饋${counterMsg}`);
-    el("chk-reset-counters").checked = false;
-    await loadData();
-  } catch (err){
-    console.error(err);
-    toast("刪除過程發生錯誤：" + err.message);
-  }
-});
-
-// 依受測者代碼刪除單一受測者之全部資料（供收到刪除申請時使用），
-// 不受上方篩選條件影響，直接以代碼比對三個集合中的既有資料。
 el("btn-single-delete").addEventListener("click", async () => {
-  const code = el("single-delete-code").value.trim();
-  if (!code){ toast("請先輸入受測者識別代碼"); return; }
-
-  const matchedResponses = allResponses.filter(r => r.participantId === code);
-  const matchedProgress = allProgress.filter(p => p.participantId === code);
-  const matchedFeedback = allFeedback.filter(f => f.participantId === code);
-  const total = matchedResponses.length + matchedProgress.length + matchedFeedback.length;
-
-  if (total === 0){ toast(`找不到代碼「${code}」的任何資料`); return; }
-
-  const msg = `確定要刪除代碼「${code}」的全部資料嗎？此操作無法復原。\n\n將刪除 ${matchedResponses.length} 筆回覆、${matchedProgress.length} 筆進度、${matchedFeedback.length} 筆意見回饋。`;
-  if (!confirm(msg)) return;
-
-  const doubleCheck = prompt(`請輸入 DELETE 以確認刪除（代碼：${code}）`);
-  if (doubleCheck !== "DELETE") { toast("已取消刪除"); return; }
-
-  toast("刪除中，請稍候...");
+  if (adminBusy) return;
+  const phase = el("filter-phase").value, run = el("filter-run").value;
+  const code = el("single-delete-code").value.trim().toUpperCase();
+  if (!phase || !run || !/^[A-Z0-9]{6}$/.test(code)) { toast("請指定階段與批次，再輸入六碼。"); return; }
+  adminBusy = true;
   try {
-    await batchDeleteDocs(matchedResponses.map(r =>
-      doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id)));
-    await batchDeleteDocs(matchedProgress.map(p =>
-      doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id)));
-    await batchDeleteDocs(matchedFeedback.map(f =>
-      doc(db, "artifacts", APP_ID, "public", "data", "pretest_feedback", f.id)));
-
-    toast(`已刪除代碼「${code}」的全部資料（共 ${total} 筆）`);
+    const codeKey = `${phase}__${run}__${code}`;
+    const previewKey = await runTransaction(db, async tx => {
+      const c = await tx.get(ref("code_registry", codeKey));
+      if (!c.exists()) throw new Error("指定批次查無此代碼。");
+      const key = c.data().participantKey;
+      const p = await tx.get(ref("participant_progress", key));
+      if (!p.exists() || p.data().participantKey !== key || p.data().participantId !== code ||
+          p.data().phase !== phase || p.data().studyRunId !== run) throw new Error("代碼與進度不符，未執行刪除。");
+      return key;
+    });
+    if (prompt(`此操作無法復原。確認刪除 ${phase}／${run}／${code} 的進度、至多五段答案及回饋？請輸入 DELETE。`) !== "DELETE") return;
+    await runTransaction(db, async tx => {
+      const codeDoc = ref("code_registry", codeKey);
+      const c = await tx.get(codeDoc);
+      if (!c.exists()) throw new Error("代碼已不存在。");
+      const key = c.data().participantKey;
+      if (key !== previewKey) throw new Error("代碼對應已變更，未執行刪除。");
+      const pRef = ref("participant_progress", key), p = await tx.get(pRef);
+      if (!p.exists() || p.data().participantKey !== key || p.data().participantId !== code ||
+          p.data().phase !== phase || p.data().studyRunId !== run) throw new Error("代碼與進度不符，未執行刪除。");
+      tx.delete(pRef);
+      for (let n = 1; n <= 5; n++) tx.delete(ref("experiment_responses", `${key}__step${n}`));
+      tx.delete(ref("pretest_feedback", key));
+      tx.delete(codeDoc);
+    });
     el("single-delete-code").value = "";
+    toast("已刪除該批次的受測者資料；分派歷史計數未回減。");
     await loadData();
-  } catch (err){
-    console.error(err);
-    toast("刪除過程發生錯誤：" + err.message);
-  }
+  } catch (err) { toast(err.message); }
+  finally { adminBusy = false; }
 });
+
 </script>
 </body>
 </html>
+⋮⋮⋮⋮

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -152,6 +153,7 @@
       <p class="text-[11px] text-slate-400 mb-1">您的識別代碼（如需聯絡研究者，請提供此代碼）</p>
       <p id="withdrawn-code" class="text-base font-mono font-bold text-slate-700 tracking-widest"></p>
     </div>
+    <p id="withdraw-save-warning" class="hidden text-xs text-rose-700">您可以離開此頁，但系統未能儲存這次停止紀錄。</p>
     <p id="deletion-notice-withdrawn" class="hidden text-[11px] text-slate-400 leading-relaxed max-w-xs"></p>
     <p class="text-xs text-slate-400">您可以直接關閉此頁面。</p>
   </div>
@@ -226,7 +228,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
-  getFirestore, doc, setDoc, getDoc,
+  getFirestore, doc, getDocFromServer,
   runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { SCENARIO_GROUPS, SCRIPTS, BALANCED_ORDERS, GROUP_IDS, ORDER_KEYS, SCRIPT_VERSION } from "./scenarios.js";
@@ -240,7 +242,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "507257673835",
   appId: "1:507257673835:web:10d6aa08b0e3b9c16ef92e"
 };
-const APP_ID = "aura-mpt-app-study"; // 需與 admin.html 一致
+const APP_ID = "aura-mpt-app-study-v2"; // 需與 admin.html 一致
 
 // 正式問卷網址：確定問卷平台後，把網址填入下方雙引號中即可（例如 "https://forms.gle/xxxx"）
 // 留空字串 "" 代表尚未設定，完成頁會隱藏「前往問卷」按鈕，只顯示完成碼。
@@ -259,41 +261,24 @@ const DATA_DELETION_WINDOW_TEXT = "";
 const ESTIMATED_MINUTES_LOW = 5;
 const ESTIMATED_MINUTES_HIGH = 8;
 
-// ============ 1. 讀取網址參數，決定 phase、施測批次與識別碼 ============
+// ============ 1. 讀取施測階段與批次 ============
 const params = new URLSearchParams(window.location.search);
-const PHASE = params.get("phase") === "main" ? "main" : "pretest"; // 預設前測
-const incomingPid = (params.get("pid") || "").trim();
-
-// 施測批次識別碼（studyRunId）：用於區分不同輪次的前測（例如改版腳本後的第二輪前測），
-// 避免不同輪次共用同一份分派計數器，也讓分析時能依批次篩選資料。
-// 每次要開始「新的一輪」施測前，請把下方預設值改成新的名稱（例如把 "run1" 改成 "run2"）；
-// 也可改用網址參數 ?run=xxx 臨時指定，不需要修改程式碼即可切換批次。
-const DEFAULT_STUDY_RUN_ID = "run1";
-const STUDY_RUN_ID = (params.get("run") || DEFAULT_STUDY_RUN_ID).trim();
-
-function randId(len=6){
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 避開 0/O, 1/I
-  let s = ""; for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
-  return s;
-}
-
-// 識別碼的持久化：避免「重新整理頁面就換一個新身分」。
-// 1. 網址若帶 pid（例如未來從問卷導入），一律優先使用，並覆寫本機暫存。
-// 2. 否則，依 phase 各自嘗試讀取瀏覽器 localStorage 中先前使用過的代碼；若有，直接延用。
-// 3. 都沒有，才產生新代碼，並存入 localStorage 供下次重新整理時延用。
-const LOCAL_STORAGE_KEY = `aura_pid_${PHASE}_${STUDY_RUN_ID}`;
-function resolveParticipantId(){
-  if (incomingPid) {
-    try { localStorage.setItem(LOCAL_STORAGE_KEY, incomingPid); } catch {}
-    return incomingPid;
+const PHASE = params.get("phase") ?? "pretest";
+const STUDY_RUN_ID = params.get("run") ?? "qa-v2";
+const RUN_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,39}$/;
+const CONSENT_VERSION = "v2";
+function randId(){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let code = "";
+  const bytes = new Uint8Array(16);
+  while (code.length < 6) {
+    crypto.getRandomValues(bytes);
+    for (const n of bytes) {
+      if (n < 256 - (256 % chars.length)) code += chars[n % chars.length];
+      if (code.length === 6) break;
+    }
   }
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) return saved;
-  } catch {}
-  const fresh = randId();
-  try { localStorage.setItem(LOCAL_STORAGE_KEY, fresh); } catch {}
-  return fresh;
+  return code;
 }
 
 // 裝置資訊：僅供研究者對照「意見回饋」與「顯示問題」之用，不要求受測者提供任何資訊
@@ -312,7 +297,10 @@ function getDeviceInfo(){
 }
 
 let db = null, auth = null;
-let participantId = resolveParticipantId();
+let participantId = null;
+let participantKey = null;
+let feedbackSubmitted = false;
+let operationBusy = false;
 let assignedGroup = null;    // G1/G2/G3
 let assignedOrderKey = null; // A..J
 let activeSequence = [];     // ["T1".."T5"] 依指定順序
@@ -334,10 +322,11 @@ function toast(msg){
 
 // ============ 2. 初始化 Firebase ============
 async function initFirebase(){
-  const app = initializeApp(FIREBASE_CONFIG);
+  const app = initializeApp(FIREBASE_CONFIG, "aura-participant-v2");
   db = getFirestore(app);
   auth = getAuth(app);
-  await signInAnonymously(auth);
+  await auth.authStateReady();
+  if (!auth.currentUser?.isAnonymous) await signInAnonymously(auth);
 }
 
 // ============ 3. 分派邏輯 ============
@@ -359,73 +348,69 @@ function pickLeastUsedCombo(counts){
   return { group: pick[0], orderKey: pick[1] };
 }
 
-// 讀取或建立受測者進度。若讀取既有進度時發生錯誤（而非「真的不存在」），
-// 必須直接中止並提示，而不是誤把暫時性錯誤當成新受測者、重新分派一次。
+function ref(collection, id){
+  return doc(db, "artifacts", APP_ID, "public", "data", collection, id);
+}
+const runKey = `${PHASE}__${STUDY_RUN_ID}`;
+const progressRef = () => ref("participant_progress", participantKey);
+const counterRef = () => ref("assignment_counters", runKey);
+const responseRef = n => ref("experiment_responses", `${participantKey}__step${n}`);
+const codeRef = code => ref("code_registry", `${runKey}__${code}`);
+function identity(d){
+  const { participantKey, participantId, phase, studyRunId, scriptVersion, group, orderKey } = d;
+  return { participantKey, participantId, phase, studyRunId, scriptVersion, group, orderKey };
+}
+function applyProgress(d){
+  if (d.phase !== PHASE || d.studyRunId !== STUDY_RUN_ID || d.scriptVersion !== SCRIPT_VERSION ||
+      d.participantKey !== participantKey || !SCRIPTS[d.group] || !BALANCED_ORDERS[d.orderKey]) {
+    throw new Error("此批次的腳本版本或分派資料不符，請聯絡研究者。");
+  }
+  participantId = d.participantId;
+  assignedGroup = d.group;
+  assignedOrderKey = d.orderKey;
+  activeSequence = BALANCED_ORDERS[d.orderKey];
+  currentStep = d.currentStep;
+  alreadyCompleted = d.completed;
+  alreadyWithdrawn = d.withdrawn;
+  feedbackSubmitted = d.feedbackSubmitted;
+}
+function showWithdrawn(){
+  show_eval(false);
+  el("withdrawn-code").textContent = participantId;
+  populateDeletionNotice("deletion-notice-withdrawn");
+  show("screen-withdrawn");
+}
+function continueStudy(d){
+  applyProgress(d);
+  show_eval(false);
+  if (alreadyWithdrawn) showWithdrawn();
+  else if (alreadyCompleted) showCompletionScreen();
+  else renderStep(currentStep);
+}
 async function assignParticipant(){
-  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
-
-  let snap;
-  try {
-    snap = await getDoc(progressRef);
-  } catch (err) {
-    throw new Error("讀取受測者進度失敗：" + err.message);
-  }
-
-  if (snap.exists()){
-    const d = snap.data();
-    assignedGroup = d.group;
-    assignedOrderKey = d.orderKey;
-    activeSequence = BALANCED_ORDERS[assignedOrderKey];
-    currentStep = d.currentStep || 0;
-    alreadyCompleted = !!d.completed;
-    alreadyWithdrawn = !!d.withdrawn;
-    return;
-  }
-
-  // 新受測者：以 Firestore 交易同時讀取計數器、決定分派、並寫入進度與計數器，
-  // 降低多人同時進入時的競爭條件（race condition）。
-  // 計數器文件路徑同時以 phase 與 studyRunId 區分，不同輪次（例如改版腳本後的第二輪前測）
-  // 不會共用同一份累積人數，也不需要在開新一輪前手動歸零。
-  const counterRef = doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", `${PHASE}__${STUDY_RUN_ID}`);
-  const ownerUid = auth.currentUser ? auth.currentUser.uid : null;
-
-  await runTransaction(db, async (tx) => {
-    const counterSnap = await tx.get(counterRef);
-    const counts = counterSnap.exists() ? counterSnap.data() : {};
-
-    const picked = pickLeastUsedCombo(counts);
-    assignedGroup = picked.group;
-    assignedOrderKey = picked.orderKey;
-    activeSequence = BALANCED_ORDERS[assignedOrderKey];
-    currentStep = 0;
-
-    const comboKey = `combo_${assignedGroup}_${assignedOrderKey}`;
-
-    // 重新組出「只包含 30 種合法欄位」的完整計數物件，再整份覆寫（不使用 merge）。
-    // 這樣即使文件裡先前殘留了舊版本（例如改版前的 group_*、order_* 欄位），
-    // 也會在下一次分派時被自動清除，不需要手動到 Firebase 清理舊資料。
-    const cleanCounts = {};
-    GROUP_IDS.forEach(g => ORDER_KEYS.forEach(o => {
-      const key = `combo_${g}_${o}`;
-      cleanCounts[key] = counts[key] || 0;
-    }));
-    cleanCounts[comboKey] = (cleanCounts[comboKey] || 0) + 1;
-
-    tx.set(progressRef, {
-      participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION, studyRunId: STUDY_RUN_ID,
-      ownerUid,
-      group: assignedGroup, orderKey: assignedOrderKey,
-      currentStep: 0, startedAt: new Date().toISOString(), completed: false,
-      withdrawn: false,
+  const code = randId();
+  return runTransaction(db, async tx => {
+    const prior = await tx.get(progressRef());
+    if (prior.exists()) return prior.data();
+    const batch = await tx.get(counterRef());
+    if (!batch.exists() || batch.data().open !== true) throw new Error("此批次尚未開放新受測者。");
+    const { counts, scriptVersion } = batch.data();
+    if (scriptVersion !== SCRIPT_VERSION) throw new Error("腳本版本與此批次不符，請聯絡研究者。");
+    const { group, orderKey } = pickLeastUsedCombo(counts);
+    const combo = `combo_${group}_${orderKey}`;
+    const d = {
+      participantKey, participantId: code, phase: PHASE, studyRunId: STUDY_RUN_ID,
+      ownerUid: auth.currentUser.uid, scriptVersion: SCRIPT_VERSION, group, orderKey,
+      consentVersion: CONSENT_VERSION, consentedAt: serverTimestamp(), startedAt: serverTimestamp(),
+      currentStep: 0, completed: false, withdrawn: false, feedbackSubmitted: false,
       deviceInfo: getDeviceInfo()
-    });
-    tx.set(counterRef, cleanCounts); // 不加 merge：整份覆寫，確保欄位乾淨
+    };
+    tx.set(progressRef(), d);
+    tx.update(counterRef(), { [`counts.${combo}`]: counts[combo] + 1 });
+    tx.set(codeRef(code), { participantKey, phase: PHASE, studyRunId: STUDY_RUN_ID });
+    return d;
   });
 }
-
-// 註：過去這裡曾有獨立的 saveProgress()／markCompleted() 函式，分兩次寫入答案與進度；
-// 現已合併進 eval-form 送出事件中的單一交易（runTransaction），確保兩者同時成功或同時失敗，
-// 避免「答案已寫入、進度未更新」的中間狀態導致受測者卡住，故移除這兩個函式。
 
 // ============ 4. 畫面渲染 ============
 function bubble(speaker, text){
@@ -517,8 +502,21 @@ el("consent-checkbox").addEventListener("change", (e) => {
   el("btn-start").disabled = !e.target.checked;
 });
 
-el("btn-start").addEventListener("click", () => {
-  renderStep(currentStep);
+el("btn-start").addEventListener("click", async () => {
+  if (!el("consent-checkbox").checked || operationBusy) return;
+  operationBusy = true;
+  el("btn-start").disabled = true;
+  el("consent-checkbox").disabled = true;
+  try {
+    continueStudy(await assignParticipant());
+  } catch (err) {
+    console.warn("assignment failed", err);
+    toast(err.code === "permission-denied" ? "無法建立分派。請再按一次開始；若仍失敗，請聯絡研究者。" : err.message);
+  } finally {
+    operationBusy = false;
+    el("consent-checkbox").disabled = false;
+    el("btn-start").disabled = !el("consent-checkbox").checked;
+  }
 });
 
 el("btn-go-eval").addEventListener("click", () => {
@@ -549,27 +547,26 @@ el("btn-withdraw-cancel").addEventListener("click", () => {
   show_withdraw_confirm(false);
 });
 el("btn-withdraw-confirm").addEventListener("click", async () => {
+  if (operationBusy) return;
+  operationBusy = true;
   show_withdraw_confirm(false);
-  show_eval(false);
-  const condition = activeSequence[currentStep];
-  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
-  const payload = {
-    withdrawn: true,
-    withdrawnAt: new Date().toISOString(),
-    withdrawnAtCondition: condition || null,
-    withdrawnAtOrderIndex: currentStep + 1
-  };
-  // 最多嘗試兩次，仍失敗則只在主控台留下紀錄，不阻擋受測者結束流程
+  showWithdrawn(); // 停止參與不依賴網路寫入成功。
   try {
-    await setDoc(progressRef, payload, { merge: true });
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(progressRef());
+      if (!snap.exists()) return;
+      const d = snap.data();
+      if (d.completed || d.withdrawn) return;
+      tx.update(progressRef(), {
+        withdrawn: true, withdrawnAt: serverTimestamp(),
+        withdrawnAtCondition: BALANCED_ORDERS[d.orderKey][d.currentStep],
+        withdrawnAtOrderIndex: d.currentStep + 1
+      });
+    });
   } catch (err) {
-    console.warn("withdraw record failed, retrying once:", err);
-    try { await setDoc(progressRef, payload, { merge: true }); }
-    catch (err2) { console.warn("withdraw record failed again:", err2); }
-  }
-  el("withdrawn-code").textContent = participantId;
-  populateDeletionNotice("deletion-notice-withdrawn");
-  show("screen-withdrawn");
+    console.warn("withdrawal not saved", err);
+    el("withdraw-save-warning").classList.remove("hidden");
+  } finally { operationBusy = false; }
 });
 
 // 依設定顯示「申請刪除資料」說明；兩項設定皆為空字串時，該段落維持隱藏，不顯示任何內容。
@@ -583,83 +580,60 @@ function populateDeletionNotice(elementId){
   el_.classList.remove("hidden");
 }
 
-el("eval-form").addEventListener("submit", async (e) => {
+el("eval-form").addEventListener("submit", async e => {
   e.preventDefault();
+  if (operationBusy) return;
   const fd = new FormData(e.target);
-  const creep = fd.get("CREEP_T"), exp = fd.get("EXP_MC"), agency = fd.get("AGE_MC");
-  if (!creep || !exp || !agency){
+  const creep = Number(fd.get("CREEP_T")), exp = Number(fd.get("EXP_MC")), agency = Number(fd.get("AGE_MC"));
+  if (![creep, exp, agency].every(n => Number.isInteger(n) && n >= 1 && n <= 7)) {
     el("eval-error").classList.remove("hidden");
     return;
   }
   el("eval-error").classList.add("hidden");
   el("eval-submit-error").classList.add("hidden");
-
-  const submitBtn = el("btn-submit-eval");
-  submitBtn.disabled = true;
-
-  const condition = activeSequence[currentStep];
-  const now = Date.now();
-  const stepStart = stepStartTimes[currentStep] || now;
-  // readingMs：自進入該段對話畫面，到第一次開啟評估表單為止，視為「閱讀時間」的估計值。
-  // totalMs：自進入該段對話畫面，到實際送出評估為止，包含閱讀與填答（及來回查看對話）所有時間。
-  const readingMs = (evalOpenTimes[currentStep] || now) - stepStart;
-  const totalMs = now - stepStart;
-
-  const orderIndex = currentStep + 1;
-  const record = {
-    participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION, studyRunId: STUDY_RUN_ID,
-    group: assignedGroup, orderKey: assignedOrderKey,
-    orderIndex, condition,
-    creep: parseInt(creep,10), exp: parseInt(exp,10), agency: parseInt(agency,10),
-    readingMs, totalMs,
-    timestamp: serverTimestamp()
-  };
-
-  const isLastStep = currentStep >= activeSequence.length - 1;
-  const nextStep = currentStep + 1;
-
-  const respRef = doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", `${participantId}__step${orderIndex}`);
-  const progressRef = doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", participantId);
-
+  const btn = el("btn-submit-eval");
+  operationBusy = true;
+  btn.disabled = true;
+  el("btn-back-to-chat").disabled = true;
+  const step = currentStep, orderIndex = step + 1;
+  const now = Date.now(), start = stepStartTimes[step] ?? now;
+  const totalMs = Math.max(0, now - start);
+  const readingMs = Math.min(totalMs, Math.max(0, (evalOpenTimes[step] ?? now) - start));
   try {
-    // 答案與進度在同一筆交易中一起寫入：只有兩者都成功才會生效，任一失敗則兩者都不會變更。
-    // 這樣可避免「答案寫入成功、但進度未更新」的中間狀態——若發生該狀態，受測者重新整理後
-    // 會被要求重填已寫入過的那一段，但因文件 ID 固定、規則禁止覆寫，將永遠卡在失敗重試。
-    await runTransaction(db, async (tx) => {
-      // 以「受測者代碼 + 第幾段」作為固定文件 ID：
-      // 同一受測者對同一段只會成功寫入一次，重複點擊或重新送出都會被資料庫規則擋下，不會造成重複紀錄。
-      tx.set(respRef, record);
-      if (isLastStep){
-        tx.set(progressRef, {
-          completed: true,
-          currentStep: activeSequence.length,
-          completedAt: new Date().toISOString()
-        }, { merge: true });
-      } else {
-        tx.set(progressRef, { currentStep: nextStep }, { merge: true });
-      }
+    const next = await runTransaction(db, async tx => {
+      const snap = await tx.get(progressRef());
+      if (!snap.exists()) throw new Error("找不到作答進度。");
+      const d = snap.data();
+      if (d.withdrawn || d.completed || d.currentStep > step) return d;
+      if (d.currentStep !== step) throw new Error("目前段次不符，請重新整理。");
+      const condition = BALANCED_ORDERS[d.orderKey][step];
+      const completed = orderIndex === 5;
+      tx.set(responseRef(orderIndex), {
+        ...identity(d), orderIndex, condition, creep, exp, agency, readingMs, totalMs,
+        timestamp: serverTimestamp()
+      });
+      tx.update(progressRef(), completed
+        ? { currentStep: orderIndex, completed, completedAt: serverTimestamp() }
+        : { currentStep: orderIndex });
+      return { ...d, currentStep: orderIndex, completed };
     });
-  } catch(err){
-    console.warn("write failed:", err);
+    continueStudy(next);
+  } catch (err) {
+    console.warn("response not saved", err);
     el("eval-submit-error").classList.remove("hidden");
-    submitBtn.disabled = false;
-    return; // 寫入失敗：停在原畫面，不往下一段前進，答案保留
+  } finally {
+    operationBusy = false;
+    btn.disabled = false;
+    el("btn-back-to-chat").disabled = false;
   }
-
-  show_eval(false);
-
-  if (!isLastStep){
-    currentStep = nextStep;
-    renderStep(currentStep);
-    toast(`已進入第 ${currentStep+1} 段 / 共 5 段`);
-  } else {
-    showCompletionScreen();
-  }
-  submitBtn.disabled = false;
 });
 
 function showCompletionScreen(){
   if (PHASE === "pretest"){
+    el("feedback-form").classList.toggle("hidden", feedbackSubmitted);
+    el("feedback-done").classList.toggle("hidden", !feedbackSubmitted);
+    el("pretest-done-code").textContent = participantId;
+    populateDeletionNotice("deletion-notice-pretest");
     show("screen-complete-pretest");
     return;
   }
@@ -688,72 +662,61 @@ el("btn-copy-code").addEventListener("click", async () => {
   }
 });
 
-// 前測專屬：意見回饋表單送出
-el("feedback-form").addEventListener("submit", async (e) => {
+el("feedback-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const clarity = fd.get("FEEDBACK_CLARITY");
-  if (!clarity) {
-    toast("請先選擇第一題的分數再送出");
-    return;
-  }
+  if (operationBusy || PHASE !== "pretest") return;
+  const clarity = Number(new FormData(e.target).get("FEEDBACK_CLARITY"));
+  if (!Number.isInteger(clarity) || clarity < 1 || clarity > 5) return;
+  const oddSegmentNote = el("feedback-odd").value.trim().slice(0, 2000);
+  const otherNote = el("feedback-other").value.trim().slice(0, 2000);
+  const btn = el("btn-submit-feedback");
+  operationBusy = true;
+  btn.disabled = true;
   el("feedback-submit-error").classList.add("hidden");
-  const submitBtn = el("btn-submit-feedback");
-  submitBtn.disabled = true;
-
-  const record = {
-    participantId,
-    phase: PHASE,
-    scriptVersion: SCRIPT_VERSION,
-    studyRunId: STUDY_RUN_ID,
-    group: assignedGroup,
-    orderKey: assignedOrderKey,
-    clarity: parseInt(clarity, 10),
-    oddSegmentNote: (el("feedback-odd").value || "").trim().slice(0, 2000),
-    otherNote: (el("feedback-other").value || "").trim().slice(0, 2000),
-    deviceInfo: getDeviceInfo(),
-    timestamp: serverTimestamp()
-  };
   try {
-    // 以受測者代碼作為固定文件 ID：同一受測者只會成功送出一筆意見回饋，重複送出會被擋下。
-    const fbRef = doc(db, "artifacts", APP_ID, "public", "data", "pretest_feedback", participantId);
-    await setDoc(fbRef, record);
+    const d = await runTransaction(db, async tx => {
+      const snap = await tx.get(progressRef());
+      if (!snap.exists()) throw new Error("找不到作答進度。");
+      const d = snap.data();
+      if (d.feedbackSubmitted) return d;
+      if (!d.completed || d.withdrawn) throw new Error("目前無法提交回饋。");
+      tx.set(ref("pretest_feedback", participantKey), {
+        ...identity(d), clarity, oddSegmentNote, otherNote,
+        deviceInfo: getDeviceInfo(), timestamp: serverTimestamp()
+      });
+      tx.update(progressRef(), { feedbackSubmitted: true });
+      return { ...d, feedbackSubmitted: true };
+    });
+    continueStudy(d);
   } catch (err) {
-    console.warn("feedback write failed:", err);
+    console.warn("feedback not saved", err);
     el("feedback-submit-error").classList.remove("hidden");
-    submitBtn.disabled = false;
-    return;
-  }
-  el("feedback-form").classList.add("hidden");
-  el("pretest-done-code").textContent = participantId;
-  populateDeletionNotice("deletion-notice-pretest");
-  el("feedback-done").classList.remove("hidden");
+  } finally { operationBusy = false; btn.disabled = false; }
 });
 
-// ============ 6. 啟動流程 ============
 async function boot(){
   try {
+    if (!["pretest", "main"].includes(PHASE) || !RUN_RE.test(STUDY_RUN_ID)) throw new Error("施測連結不正確。");
     await initFirebase();
-    await assignParticipant();
-
-    if (alreadyWithdrawn){
-      show("screen-withdrawn");
-      return;
-    }
-    if (alreadyCompleted || currentStep >= activeSequence.length){
-      showCompletionScreen();
-      return;
-    }
-    el("estimated-time-text").textContent =
-      `全程（含逐段評估）預計約需 ${ESTIMATED_MINUTES_LOW} 至 ${ESTIMATED_MINUTES_HIGH} 分鐘。`;
+    participantKey = `${runKey}__${auth.currentUser.uid}`;
+    const prior = await getDocFromServer(progressRef());
+    if (prior.exists()) { continueStudy(prior.data()); return; }
+    if (PHASE === "main" && !SURVEY_URL.trim()) throw new Error("正式問卷尚未設定，暫不開放正式施測。");
+    const batch = await getDocFromServer(counterRef());
+    if (!batch.exists() || batch.data().open !== true) throw new Error("此批次尚未開放新受測者。");
+    if (batch.data().scriptVersion !== SCRIPT_VERSION) throw new Error("此批次的腳本版本不符，請聯絡研究者。");
+    el("estimated-time-text").textContent = `全程（含逐段評估）預計約需 ${ESTIMATED_MINUTES_LOW} 至 ${ESTIMATED_MINUTES_HIGH} 分鐘。`;
     show("screen-intro");
-  } catch (err){
-    console.error(err);
-    toast("連線發生問題，請重新整理頁面：" + err.message);
+  } catch (err) {
+    console.warn("boot failed", err);
+    el("screen-noaccess").querySelector("p").textContent = `無法進入施測：${err.message}`;
+    show("screen-noaccess");
   }
 }
 boot();
+
 </script>
 
 </body>
 </html>
+⋮⋮⋮⋮

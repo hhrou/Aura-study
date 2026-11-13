@@ -67,11 +67,12 @@
         </select>
       </div>
       <button id="btn-refresh" class="ml-auto text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5">重新整理資料</button>
-      <button id="btn-export-csv" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5">匯出 CSV</button>
+      <button id="btn-export-csv" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5">匯出回覆 CSV</button>
+      <button id="btn-export-feedback-csv" class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg px-3 py-1.5">匯出意見回饋 CSV</button>
     </div>
 
     <!-- 總覽統計 -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
       <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
         <p class="text-[11px] text-slate-400">總受測人數</p>
         <p id="stat-total-participants" class="text-2xl font-extrabold text-slate-900 mt-1">–</p>
@@ -79,6 +80,10 @@
       <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
         <p class="text-[11px] text-slate-400">已完成人數</p>
         <p id="stat-completed" class="text-2xl font-extrabold text-emerald-600 mt-1">–</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+        <p class="text-[11px] text-slate-400" title="獨立核對：實際擁有五筆不同互動類型回覆的受測者人數，理論上應等於「已完成人數」">有效完成人數</p>
+        <p id="stat-valid-completed" class="text-2xl font-extrabold text-emerald-700 mt-1">–</p>
       </div>
       <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
         <p class="text-[11px] text-slate-400">總回覆筆數</p>
@@ -89,6 +94,9 @@
         <p id="stat-completion-rate" class="text-2xl font-extrabold text-slate-900 mt-1">–</p>
       </div>
     </div>
+    <p id="stat-mismatch-warning" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+      「已完成人數」與「有效完成人數」不一致，代表有受測者被標記為完成，但實際回覆筆數不足五筆（可能是較早版本在儲存失敗時仍往下一段所致）。
+    </p>
 
     <!-- 各情境分派人數 -->
     <div class="bg-white rounded-2xl border border-slate-200 p-4">
@@ -123,7 +131,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 p-4">
         <p class="text-sm font-bold text-slate-800 mb-2">中途退出之互動類型分布</p>
         <div id="withdrawal-summary" class="grid grid-cols-5 gap-2 text-center"></div>
-        <p class="text-[10px] text-slate-400 mt-2">顯示受測者於哪一種互動類型（T1–T5）停止參與，可判斷特定類型是否較易引發退出</p>
+        <p class="text-[10px] text-slate-400 mt-2">僅計入主動點擊「我想先停止參與」的受測者；未完成且非主動退出者（例如直接關閉分頁）不會被計入，不能直接視為各類型真正的流失率。</p>
       </div>
     </div>
 
@@ -155,7 +163,7 @@
               <th class="p-2">類型</th>
               <th class="p-2">CREEP</th>
               <th class="p-2">EXP</th>
-              <th class="p-2">AGE</th>
+              <th class="p-2" title="Agency 操弄確認分數，非受測者年齡">AGENCY</th>
               <th class="p-2">時間</th>
             </tr>
           </thead>
@@ -168,12 +176,15 @@
     <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
       <div>
         <p class="text-sm font-bold text-rose-700">清除資料（無法復原）</p>
-        <p class="text-xs text-rose-600 mt-1">僅會刪除符合上方篩選條件（階段／版本）的 experiment_responses 與 participant_progress 資料，不影響其他條件的資料。</p>
+        <p class="text-xs text-rose-600 mt-1">僅會刪除符合上方篩選條件（階段／版本）的 experiment_responses、participant_progress 與 pretest_feedback 資料，不影響其他條件的資料。</p>
       </div>
-      <label class="flex items-center gap-2 text-xs text-rose-700">
+      <label id="reset-counters-row" class="flex items-center gap-2 text-xs text-rose-700">
         <input type="checkbox" id="chk-reset-counters" class="rounded border-rose-300">
-        同時將「分派計數器」歸零（僅限目前篩選的階段，例如 pretest；若未指定階段則不會執行，避免誤清正式資料的計數）
+        同時將「分派計數器」歸零
       </label>
+      <p id="reset-counters-hint" class="text-[10px] text-rose-500 -mt-2">
+        分派計數器僅以「階段」為單位記錄，不分腳本版本；因此只有在「階段」已指定、且「腳本版本」為全部時，才能勾選歸零，避免刪除單一版本的資料時，誤將其他版本共用的計數一併清空。
+      </p>
       <button id="btn-danger-delete" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-2 font-semibold">
         刪除目前篩選條件下的所有資料
       </button>
@@ -187,7 +198,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ============ 0. 設定區：請填入與 index.html 相同的 Firebase 設定 ============
 const FIREBASE_CONFIG = {
@@ -314,12 +325,25 @@ function renderAll(){
   const uniqueParticipants = new Set(progress.map(p => p.participantId));
   const completedCount = progress.filter(p => p.completed).length;
 
+  // 「有效完成人數」：獨立由 experiment_responses 重新核對，
+  // 不信任 participant_progress 的 completed 旗標，確認該受測者確實擁有五筆「相異互動類型」的回覆。
+  // 理論上應與「已完成人數」相等；若兩者不同，代表資料可能有缺漏或重複，畫面會另外提示。
+  const conditionsByParticipant = {};
+  responses.forEach(r => {
+    if (!r.participantId || !r.condition) return;
+    if (!conditionsByParticipant[r.participantId]) conditionsByParticipant[r.participantId] = new Set();
+    conditionsByParticipant[r.participantId].add(r.condition);
+  });
+  const validCompletedCount = Object.values(conditionsByParticipant).filter(s => s.size >= 5).length;
+
   el("stat-total-participants").textContent = uniqueParticipants.size;
   el("stat-completed").textContent = completedCount;
+  el("stat-valid-completed").textContent = validCompletedCount;
   el("stat-total-records").textContent = responses.length;
   el("stat-completion-rate").textContent = uniqueParticipants.size
-    ? Math.round((completedCount / uniqueParticipants.size) * 100) + "%"
+    ? Math.round((validCompletedCount / uniqueParticipants.size) * 100) + "%"
     : "–";
+  el("stat-mismatch-warning").classList.toggle("hidden", completedCount === validCompletedCount);
 
   renderGroupBalance(progress);
   renderTypeSummary(responses);
@@ -329,41 +353,61 @@ function renderAll(){
   renderDetailTable(responses);
 }
 
+// 建立一個 <tag>，並以 textContent 安全地放入資料庫取得的文字（絕不使用 innerHTML 組字串），
+// 避免受測者輸入的文字（例如意見回饋的自由填答欄位）被當成 HTML 解析、造成跨站腳本風險。
+function el_(tag, className, text){
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text !== undefined && text !== null) n.textContent = text;
+  return n;
+}
+
+function formatTimestamp(ts){
+  if (!ts) return "-";
+  const d = (typeof ts === "object" && ts.toDate) ? ts.toDate() : new Date(ts);
+  if (isNaN(d.getTime())) return "-";
+  return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
 function renderFeedbackList(feedbackRows){
   const box = el("feedback-list");
   box.innerHTML = "";
   if (feedbackRows.length === 0){
-    box.innerHTML = `<p class="text-xs text-slate-400 py-2">目前篩選條件下沒有意見回饋</p>`;
+    box.appendChild(el_("p", "text-xs text-slate-400 py-2", "目前篩選條件下沒有意見回饋"));
     return;
   }
   const sorted = [...feedbackRows].sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0));
   sorted.forEach(f => {
-    const card = document.createElement("div");
-    card.className = "border border-slate-200 rounded-xl p-3 text-xs space-y-1.5";
+    const card = el_("div", "border border-slate-200 rounded-xl p-3 text-xs space-y-1.5");
     const device = f.deviceInfo || {};
     const deviceStr = device.viewportW
       ? `${device.isMobile ? "手機" : "電腦"}・視窗 ${device.viewportW}×${device.viewportH}`
       : "（無裝置資訊）";
-    let t = "-";
-    if (f.timestamp){
-      const d = new Date(f.timestamp);
-      if (!isNaN(d.getTime())){
-        t = `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-      }
+
+    const row1 = el_("div", "flex items-center justify-between");
+    row1.appendChild(el_("span", "font-mono font-bold text-indigo-600", f.participantId || "-"));
+    row1.appendChild(el_("span", "text-slate-400", formatTimestamp(f.timestamp)));
+    card.appendChild(row1);
+
+    const row2 = el_("div", "flex items-center gap-3 text-slate-500");
+    const clarityWrap = el_("span");
+    clarityWrap.append("順暢度：");
+    clarityWrap.appendChild(el_("span", Number(f.clarity) <= 2 ? "font-bold text-rose-500" : "font-bold text-slate-700", `${f.clarity ?? "-"} / 5`));
+    row2.appendChild(clarityWrap);
+    row2.appendChild(el_("span", null, f.group || "-"));
+    row2.appendChild(el_("span", "text-slate-400", deviceStr));
+    card.appendChild(row2);
+
+    if (f.oddSegmentNote){
+      const p = el_("p", "bg-amber-50 rounded-lg p-2 text-amber-800");
+      p.append("奇怪／不自然處：" + f.oddSegmentNote);
+      card.appendChild(p);
     }
-    card.innerHTML = `
-      <div class="flex items-center justify-between">
-        <span class="font-mono font-bold text-indigo-600">${f.participantId || "-"}</span>
-        <span class="text-slate-400">${t}</span>
-      </div>
-      <div class="flex items-center gap-3 text-slate-500">
-        <span>順暢度：<span class="font-bold ${Number(f.clarity) <= 2 ? "text-rose-500" : "text-slate-700"}">${f.clarity ?? "-"} / 5</span></span>
-        <span>${f.group || "-"}</span>
-        <span class="text-slate-400">${deviceStr}</span>
-      </div>
-      ${f.oddSegmentNote ? `<p class="bg-amber-50 rounded-lg p-2 text-amber-800">奇怪／不自然處：${f.oddSegmentNote}</p>` : ""}
-      ${f.otherNote ? `<p class="bg-slate-50 rounded-lg p-2 text-slate-600">其他意見：${f.otherNote}</p>` : ""}
-    `;
+    if (f.otherNote){
+      const p = el_("p", "bg-slate-50 rounded-lg p-2 text-slate-600");
+      p.append("其他意見：" + f.otherNote);
+      card.appendChild(p);
+    }
     box.appendChild(card);
   });
 }
@@ -394,21 +438,21 @@ function renderWithdrawalSummary(progress){
   });
   const box = el("withdrawal-summary");
   box.innerHTML = "";
+  if (withdrawnList.length === 0){
+    box.appendChild(el_("p", "col-span-5 text-xs text-slate-400 py-2", "目前沒有主動點擊停止參與的紀錄（直接關閉分頁者不計入，詳見下方說明）"));
+    return;
+  }
   order.forEach(t => {
-    const col = document.createElement("div");
-    col.className = "bg-slate-50 rounded-lg py-2";
-    col.innerHTML = `
-      <p class="text-[10px] text-slate-400">${t}</p>
-      <p class="text-sm font-bold ${counts[t] > 0 ? "text-rose-500" : "text-slate-700"}">${counts[t]}</p>
-    `;
+    const col = el_("div", "bg-slate-50 rounded-lg py-2");
+    col.appendChild(el_("p", "text-[10px] text-slate-400", t));
+    col.appendChild(el_("p", counts[t] > 0 ? "text-sm font-bold text-rose-500" : "text-sm font-bold text-slate-700", String(counts[t])));
     box.appendChild(col);
   });
-  if (withdrawnList.length === 0){
-    box.innerHTML = `<p class="col-span-5 text-xs text-slate-400 py-2">目前沒有中途退出的紀錄</p>`;
-  }
 }
 
 function renderGroupBalance(progress){
+  // 組別代碼與中文名稱皆為固定常數，counts 為數字，本身沒有資料安全疑慮，
+  // 仍一併改用 el_ 建構，與全檔案的寫法保持一致。
   const box = el("group-balance-bar");
   box.innerHTML = "";
   const groups = ["G1","G2","G3"];
@@ -418,20 +462,21 @@ function renderGroupBalance(progress){
 
   groups.forEach(g => {
     const pct = Math.round((counts[g]/max)*100);
-    const col = document.createElement("div");
-    col.className = "flex-1 text-center";
-    col.innerHTML = `
-      <div class="h-24 bg-slate-100 rounded-lg flex items-end overflow-hidden">
-        <div class="w-full bg-indigo-500 rounded-t-lg transition-all" style="height:${pct}%"></div>
-      </div>
-      <p class="text-xs font-bold text-slate-700 mt-1">${counts[g]}</p>
-      <p class="text-[10px] text-slate-400">${labels[g]}</p>
-    `;
+    const col = el_("div", "flex-1 text-center");
+    const barOuter = el_("div", "h-24 bg-slate-100 rounded-lg flex items-end overflow-hidden");
+    const barInner = el_("div", "w-full bg-indigo-500 rounded-t-lg transition-all");
+    barInner.style.height = pct + "%";
+    barOuter.appendChild(barInner);
+    col.appendChild(barOuter);
+    col.appendChild(el_("p", "text-xs font-bold text-slate-700 mt-1", String(counts[g])));
+    col.appendChild(el_("p", "text-[10px] text-slate-400", labels[g]));
     box.appendChild(col);
   });
 }
 
 function renderTypeSummary(responses){
+  // T1 至 T5 的名稱為研究者自訂的固定常數，非資料庫欄位，使用 innerHTML 組出這部分版面是安全的；
+  // 僅平均數與筆數（皆為數字）動態帶入，一併用 textContent 寫入以保持一致的安全寫法。
   const order = ["T1","T2","T3","T4","T5"];
   const names = { T1:"一般回應型", T2:"感受性表達型", T3:"安全陪伴型", T4:"自主引導與有限度界線試探型", T5:"持續追問型" };
   const tbody = el("type-summary-body");
@@ -440,17 +485,16 @@ function renderTypeSummary(responses){
     const rows = responses.filter(r => r.condition === t);
     const n = rows.length;
     const avg = (key) => n ? (rows.reduce((a,b)=>a+(Number(b[key])||0),0)/n).toFixed(2) : "–";
+
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="py-1.5 text-left pl-1">
-        <span class="font-bold text-indigo-600">${t}</span>
-        <span class="text-[10px] text-slate-400 block">${names[t]}</span>
-      </td>
-      <td class="${Number(avg("creep"))>=4.5 ? "text-rose-500 font-bold" : ""}">${avg("creep")}</td>
-      <td>${avg("exp")}</td>
-      <td>${avg("age")}</td>
-      <td class="text-slate-400">${n}</td>
-    `;
+    const tdType = el_("td", "py-1.5 text-left pl-1");
+    tdType.appendChild(el_("span", "font-bold text-indigo-600", t));
+    tdType.appendChild(el_("span", "text-[10px] text-slate-400 block", names[t]));
+    tr.appendChild(tdType);
+    tr.appendChild(el_("td", Number(avg("creep"))>=4.5 ? "text-rose-500 font-bold" : "", avg("creep")));
+    tr.appendChild(el_("td", "", avg("exp")));
+    tr.appendChild(el_("td", "", avg("agency")));
+    tr.appendChild(el_("td", "text-slate-400", String(n)));
     tbody.appendChild(tr);
   });
 }
@@ -466,71 +510,107 @@ function renderDetailTable(responses){
 
   tbody.innerHTML = "";
   if (sorted.length === 0){
-    tbody.innerHTML = `<tr><td colspan="11" class="p-3 text-center text-slate-400">尚無符合條件的資料</td></tr>`;
+    const tr = document.createElement("tr");
+    const td = el_("td", "p-3 text-center text-slate-400", "尚無符合條件的資料");
+    td.colSpan = 11;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
     return;
   }
+  // 每一格資料都來自資料庫，一律以 textContent（透過 el_）寫入，不組合 HTML 字串，
+  // 避免 participantId、scriptVersion 等欄位若含有特殊字元時被瀏覽器當成標籤解析。
   sorted.forEach(r => {
-    let t = "-";
-    if (r.timestamp){
-      const d = new Date(r.timestamp);
-      if (!isNaN(d.getTime())){
-        t = `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-      }
-    }
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="p-2">${r.participantId||"-"}</td>
-      <td class="p-2">${r.phase||"-"}</td>
-      <td class="p-2 text-slate-400">${r.scriptVersion||"-"}</td>
-      <td class="p-2">${r.group||"-"}</td>
-      <td class="p-2">${r.orderKey||"-"}</td>
-      <td class="p-2">${r.orderIndex||"-"}</td>
-      <td class="p-2 font-bold text-indigo-600">${r.condition||"-"}</td>
-      <td class="p-2 ${Number(r.creep)>=5?"text-rose-500 font-bold":""}">${r.creep??"-"}</td>
-      <td class="p-2">${r.exp??"-"}</td>
-      <td class="p-2">${r.age??"-"}</td>
-      <td class="p-2 text-slate-400 whitespace-nowrap">${t}</td>
-    `;
+    tr.appendChild(el_("td", "p-2", r.participantId || "-"));
+    tr.appendChild(el_("td", "p-2", r.phase || "-"));
+    tr.appendChild(el_("td", "p-2 text-slate-400", r.scriptVersion || "-"));
+    tr.appendChild(el_("td", "p-2", r.group || "-"));
+    tr.appendChild(el_("td", "p-2", r.orderKey || "-"));
+    tr.appendChild(el_("td", "p-2", r.orderIndex != null ? String(r.orderIndex) : "-"));
+    tr.appendChild(el_("td", "p-2 font-bold text-indigo-600", r.condition || "-"));
+    tr.appendChild(el_("td", "p-2 " + (Number(r.creep) >= 5 ? "text-rose-500 font-bold" : ""), r.creep ?? "-"));
+    tr.appendChild(el_("td", "p-2", r.exp ?? "-"));
+    tr.appendChild(el_("td", "p-2", r.agency ?? "-"));
+    tr.appendChild(el_("td", "p-2 text-slate-400 whitespace-nowrap", formatTimestamp(r.timestamp)));
     tbody.appendChild(tr);
   });
 }
 
 // ============ 4. 事件 ============
-el("filter-phase").addEventListener("change", renderAll);
-el("filter-version").addEventListener("change", renderAll);
+el("filter-phase").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
+el("filter-version").addEventListener("change", () => { syncResetCountersAvailability(); renderAll(); });
 el("detail-filter").addEventListener("input", renderAll);
 el("btn-refresh").addEventListener("click", loadData);
+
+// 分派計數器僅以「階段」為單位，不分版本；因此只有「階段已指定、版本為全部」時才能勾選歸零，
+// 避免刪除單一腳本版本的資料時，誤將其他版本共用的計數一併清空。
+function syncResetCountersAvailability(){
+  const phase = el("filter-phase").value;
+  const version = el("filter-version").value;
+  const available = !!phase && !version;
+  const chk = el("chk-reset-counters");
+  chk.disabled = !available;
+  if (!available) chk.checked = false;
+}
+syncResetCountersAvailability();
+
+// 將 CSV 儲存格做基本的公式注入防護：若內容以 = + - @ 開頭，前面加一個跳脫用的單引號，
+// 避免試算表軟體（Excel、Google 試算表）把儲存格內容誤當成公式執行。
+function sanitizeCsvCell(value){
+  const s = (value ?? "").toString();
+  const needsGuard = /^[=+\-@]/.test(s);
+  const guarded = needsGuard ? "'" + s : s;
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(headers, rows, filenamePrefix){
+  const csvRows = rows.map(r => headers.map(h => sanitizeCsvCell(r[h])).join(","));
+  const csvText = "\uFEFF" + [headers.join(","), ...csvRows].join("\r\n");
+  const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filenamePrefix}_${Date.now()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 el("btn-export-csv").addEventListener("click", () => {
   const rows = getFiltered();
   if (rows.length === 0){ toast("目前篩選條件下沒有資料"); return; }
-  const headers = ["participantId","phase","scriptVersion","group","orderKey","orderIndex","condition","creep","exp","age","readingMs","timestamp"];
-  const csvRows = rows.map(r => headers.map(h => `"${(r[h]??"").toString().replace(/"/g,'""')}"`).join(","));
-  const csv = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...csvRows].join("\n");
-  const link = document.createElement("a");
-  link.href = encodeURI(csv);
-  link.download = `aura_responses_${Date.now()}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  toast("已匯出 CSV");
+  const headers = ["participantId","phase","scriptVersion","group","orderKey","orderIndex","condition","creep","exp","agency","readingMs","totalMs","timestamp"];
+  downloadCsv(headers, rows, "aura_responses");
+  toast("已匯出回覆 CSV");
 });
+
+el("btn-export-feedback-csv").addEventListener("click", () => {
+  const rows = getFilteredFeedback();
+  if (rows.length === 0){ toast("目前篩選條件下沒有意見回饋資料"); return; }
+  const headers = ["participantId","phase","scriptVersion","group","orderKey","clarity","oddSegmentNote","otherNote","timestamp"];
+  downloadCsv(headers, rows, "aura_pretest_feedback");
+  toast("已匯出意見回饋 CSV");
+});
+
+// 以 500 筆為一批進行刪除（Firestore 批次寫入上限），降低中途出錯時「刪一半」的風險範圍。
+async function batchDeleteDocs(refs){
+  const chunkSize = 450; // 留一點餘裕，避免剛好卡在上限
+  for (let i = 0; i < refs.length; i += chunkSize){
+    const batch = writeBatch(db);
+    refs.slice(i, i + chunkSize).forEach(ref => batch.delete(ref));
+    await batch.commit();
+  }
+}
 
 el("btn-danger-delete").addEventListener("click", async () => {
   const phase = el("filter-phase").value;
   const version = el("filter-version").value;
-  const wantResetCounters = el("chk-reset-counters").checked;
+  const wantResetCounters = el("chk-reset-counters").checked && !el("chk-reset-counters").disabled;
   const scope = `階段：${phase||"全部"}，版本：${version||"全部"}`;
 
-  // 歸零計數器僅在「有指定明確階段」時才允許，避免一次把 pretest、main 的計數全部清掉
-  const canResetCounters = wantResetCounters && !!phase;
-  if (wantResetCounters && !phase){
-    toast("請先選擇明確的「階段」（pretest 或 main），才能歸零對應的分派計數器");
-    return;
-  }
-
   let msg = `確定要刪除符合以下條件的資料嗎？此操作無法復原。\n\n${scope}`;
-  if (canResetCounters) msg += `\n\n同時將歸零 assignment_counters/${phase} 這份計數器文件。`;
+  if (wantResetCounters) msg += `\n\n同時將歸零 assignment_counters/${phase} 這份計數器文件。`;
   if (!phase && !version){
     msg = `您沒有設定任何篩選條件，這將刪除「全部」資料，確定要刪除嗎？\n\n${scope}`;
   }
@@ -543,21 +623,22 @@ el("btn-danger-delete").addEventListener("click", async () => {
   try {
     const targetResponses = getFiltered();
     const targetProgress = getFilteredProgress();
+    const targetFeedback = getFilteredFeedback();
 
-    for (const r of targetResponses){
-      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id));
-    }
-    for (const p of targetProgress){
-      await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id));
-    }
+    await batchDeleteDocs(targetResponses.map(r =>
+      doc(db, "artifacts", APP_ID, "public", "data", "experiment_responses", r.id)));
+    await batchDeleteDocs(targetProgress.map(p =>
+      doc(db, "artifacts", APP_ID, "public", "data", "participant_progress", p.id)));
+    await batchDeleteDocs(targetFeedback.map(f =>
+      doc(db, "artifacts", APP_ID, "public", "data", "pretest_feedback", f.id)));
 
     let counterMsg = "";
-    if (canResetCounters){
+    if (wantResetCounters){
       await deleteDoc(doc(db, "artifacts", APP_ID, "public", "data", "assignment_counters", phase));
       counterMsg = `，並已歸零 ${phase} 分派計數器`;
     }
 
-    toast(`已刪除 ${targetResponses.length} 筆回覆、${targetProgress.length} 筆進度資料${counterMsg}`);
+    toast(`已刪除 ${targetResponses.length} 筆回覆、${targetProgress.length} 筆進度、${targetFeedback.length} 筆意見回饋${counterMsg}`);
     el("chk-reset-counters").checked = false;
     await loadData();
   } catch (err){

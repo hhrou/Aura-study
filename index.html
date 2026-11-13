@@ -46,6 +46,7 @@
         <p>接下來，您將閱讀五段虛構的 AI Companion 文字對話。請想像自己就是對話中的使用者（User），而 Aura 是一款與您已有一定互動熟悉程度的 AI Companion。</p>
         <p>五段對話發生在不同日子，彼此獨立。請依照每段對話呈現的情況，想像自己正在與 Aura 互動，並根據閱讀後的實際感受回答問題。</p>
         <p>每段閱讀後都需要作答。本研究沒有標準答案，請依照您的第一印象填答。</p>
+        <p id="estimated-time-text" class="text-indigo-600 font-semibold"></p>
       </div>
       <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 leading-relaxed">
         部分對話內容可能讓您感到不安或不舒服，您可以隨時停止參與，無須說明理由。
@@ -224,6 +225,12 @@ const APP_ID = "aura-mpt-app-study"; // 需與 admin.html 一致
 // 正式問卷網址：確定問卷平台後，把網址填入下方雙引號中即可（例如 "https://forms.gle/xxxx"）
 // 留空字串 "" 代表尚未設定，完成頁會隱藏「前往問卷」按鈕，只顯示完成碼。
 const SURVEY_URL = "";
+
+// 預估完成時間（分鐘）：目前為研究者依經驗推估之暫定值。
+// 待前測蒐集到實際平均完成時間後（後台「平均完成時間」統計），請將下列數字改為正式數據，
+// 不需修改其他任何程式碼，畫面文字會自動依此更新。
+const ESTIMATED_MINUTES_LOW = 5;
+const ESTIMATED_MINUTES_HIGH = 8;
 
 // ============ 1. 讀取網址參數，決定 phase 與是否有代碼 ============
 const params = new URLSearchParams(window.location.search);
@@ -567,6 +574,8 @@ async function boot(){
       showCompletionScreen();
       return;
     }
+    el("estimated-time-text").textContent =
+      `全程（含逐段評估）預計約需 ${ESTIMATED_MINUTES_LOW} 至 ${ESTIMATED_MINUTES_HIGH} 分鐘。`;
     show("screen-intro");
   } catch (err){
     console.error(err);

@@ -373,7 +373,16 @@ async function assignParticipant(){
     currentStep = 0;
 
     const comboKey = `combo_${assignedGroup}_${assignedOrderKey}`;
-    const nextCount = (counts[comboKey] || 0) + 1;
+
+    // 重新組出「只包含 30 種合法欄位」的完整計數物件，再整份覆寫（不使用 merge）。
+    // 這樣即使文件裡先前殘留了舊版本（例如改版前的 group_*、order_* 欄位），
+    // 也會在下一次分派時被自動清除，不需要手動到 Firebase 清理舊資料。
+    const cleanCounts = {};
+    GROUP_IDS.forEach(g => ORDER_KEYS.forEach(o => {
+      const key = `combo_${g}_${o}`;
+      cleanCounts[key] = counts[key] || 0;
+    }));
+    cleanCounts[comboKey] = (cleanCounts[comboKey] || 0) + 1;
 
     tx.set(progressRef, {
       participantId, phase: PHASE, scriptVersion: SCRIPT_VERSION,
@@ -383,7 +392,7 @@ async function assignParticipant(){
       withdrawn: false,
       deviceInfo: getDeviceInfo()
     });
-    tx.set(counterRef, { [comboKey]: nextCount }, { merge: true });
+    tx.set(counterRef, cleanCounts); // 不加 merge：整份覆寫，確保欄位乾淨
   });
 }
 
